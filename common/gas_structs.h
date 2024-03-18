@@ -6,9 +6,9 @@
 
 struct gas_Atoms
 {
-    const glm::vec3*   coords;
-    const uint64_t   n_coords;
-    const float        radius;
+    const glm::vec3* coords;
+    const size_t     n_coords;
+    const float      radius;
 };
 
 #endif // GAS_STRUCTS_H_ 
