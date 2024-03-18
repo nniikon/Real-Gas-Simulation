@@ -1,14 +1,8 @@
 #include "stdint.h"
-
-struct gas_AtomCoords
-{
-    float x;
-    float y;
-    float z;
-};
+#include "../glm/glm/glm.hpp"
 
 struct gas_Atoms
 {
-    const gas_AtomCoords*   coords;
-    const uint64_t        n_coords;
+    const glm::vec3*   coords;
+    const uint64_t   n_coords;
 };
