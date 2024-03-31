@@ -5,14 +5,10 @@
 
 #include "../atoms_list/eng_atoms_list.h"
 
-struct Engine
-{
-    eng_Atom*   atoms;
-    size_t    n_atoms;
-};
-
 const char* eng_GetErrorMsg(const eng_Error err);
 
-eng_Error eng_Ctor(const size_t n_atoms);
+eng_Error eng_Ctor(gas_Atoms* atoms, eng_AtomList* list, const size_t n_atoms);
+
+eng_Error eng_Compute(eng_AtomList* list, const float deltaTime);
 
 #endif // ENGINE_H_

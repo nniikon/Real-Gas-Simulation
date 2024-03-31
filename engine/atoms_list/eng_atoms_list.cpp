@@ -22,18 +22,15 @@ static float GetRandomVelocity() {
 }
 
 
-static glm::vec3 GetRandomVector(float (*func)())
-{
+static glm::vec3 GetRandomVector(float (*func)()) {
     return glm::vec3(func(), func(), func());
 }
 
 
-eng_Error eng_SetRandomPositions(eng_AtomList* atoms, size_t size)
-{
+eng_Error eng_SetRandomPositions(eng_AtomList* atoms) {
     assert(atoms);
-    assert(size);
 
-    for (size_t i = 0; i < size; i++)
+    for (size_t i = 0; i < atoms->size; i++)
     {
         atoms->positions [i] = GetRandomVector(GetRandomCoordinate);
         atoms->velocities[i] = GetRandomVector(GetRandomVelocity);
@@ -43,30 +40,33 @@ eng_Error eng_SetRandomPositions(eng_AtomList* atoms, size_t size)
 }
 
 
-eng_Error eng_AtomListConstructor(eng_AtomList* list, size_t* size,
-                                                          uint16_t *divisions) {
+eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
+                                                      const uint16_t divisions) {
     assert(list);
     assert(size);
 
-    void* temp = calloc((*size)              * sizeof(glm::vec3) * 2  +
-                        (*size + *divisions) * sizeof(size_t*  ) * 2, 1);
+    void* temp = calloc((size)             * sizeof(glm::vec3) * 2  +
+                        (size + divisions) * sizeof(size_t*  ) * 2, 1);
     if (temp == nullptr) {
         return ENG_ERR_MEM_ALLOC;
     }
 
-    list->size      = *size;
-    list->divisions = *divisions;
+    list->size      = size;
+    list->divisions = divisions;
 
     list->positions  = (glm::vec3*)temp;
-    temp = (glm::vec3*)temp + *size;
+    temp = (glm::vec3*)temp + size;
 
     list->velocities = (glm::vec3*)temp;
-    temp = (glm::vec3*)temp + *size;
+    temp = (glm::vec3*)temp + size;
 
     list->next = (size_t*)temp;
-    temp = (size_t*)temp + *size + *divisions;
+    temp = (size_t*)temp + size + divisions;
 
     list->prev = (size_t*)temp;
+
+    // TODO: fixme
+    list->radius = 1.0f;
 
     return ENG_ERR_NO;
 }

@@ -22,9 +22,9 @@ struct eng_AtomList {
     float  box_size;
 };
 
-eng_Error eng_AtomListConstructor(eng_AtomList* atoms, size_t* size, uint16_t* divisions);
+eng_Error eng_AtomListConstructor(eng_AtomList* atoms, size_t size, uint16_t divisions);
 eng_Error eng_UpdatePositions    (eng_AtomList* atoms, float delta_time);
 eng_Error eng_HandleInteractions (eng_AtomList* atoms);
-eng_Error eng_SetRandomPositions (eng_AtomList* atoms, size_t size);
+eng_Error eng_SetRandomPositions (eng_AtomList* atoms);
 
 #endif // ENG_ATOMS_LIST_

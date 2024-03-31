@@ -21,11 +21,27 @@ const char* eng_GetErrorMsg(const eng_Error err)
     #undef DEF_ERR
 }
 
-eng_Error eng_Ctor(Engine* engine, const size_t n_atoms)
+eng_Error eng_Ctor(gas_Atoms* atoms, eng_AtomList* list, const size_t n_atoms)
 {
-    assert(engine);
+    assert(list);
 
-    engine->n_atoms = n_atoms;
+    // TODO: cringe
+    // TODO: error check
+    eng_AtomListConstructor(list, n_atoms, 9);
+    eng_SetRandomPositions (list);
+
+    atoms->coords = list->positions;
+    atoms->n_coords = n_atoms;
+
+    return ENG_ERR_NO;
+}
+
+
+eng_Error eng_Compute(eng_AtomList* list, const float deltaTime) {
+    assert(list);
+
+    eng_HandleInteractions(list);
+    eng_UpdatePositions   (list, deltaTime);
 
     return ENG_ERR_NO;
 }
