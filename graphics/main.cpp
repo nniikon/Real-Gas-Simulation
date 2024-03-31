@@ -1,30 +1,36 @@
-#include "include/graphics.h"
-// #include <GLFW/glfw3.h>
-
-const int graph_kWindowWidth = 1024;
-const int graph_kWindowHight = 512;
-const char* graph_kWindowTitle = "real shit";
+#include "fwd.hpp"
+#include "graphics.h"
 
 int main(const int argc, const char** argv) {
-    graph_GLFWInit();
+    GLFWwindow* window = graph_SetUpRender();
+    if (window == nullptr) { return -1; }
 
-    GLFWwindow* window = glfwCreateWindow(graph_kWindowHight,
-                                         graph_kWindowHight,
-                                          graph_kWindowTitle,
-                                        NULL,
-                                          NULL);
-    if (window == NULL) {
-        glfwTerminate();
-        return -1;
+    gl_id shader_prog_id = graph_SetUpGl();
+
+    // call atms ctor
+    glm::vec3 atms[] = {{-0.5f, -0.5f, 0.0f},
+                        { 0.5f, -0.5f, 0.0f},
+                        { 0.0f,  0.5f, 0.0f}};
+
+    size_t n_at = 3;
+    gas_Atoms atoms = {
+        .coords = atms,
+        .n_coords = n_at,
+        .radius = 1.0f
+    };
+
+
+    // graph_DoMagic(window, &atoms, shader_prog_id);
+
+    while (!glfwWindowShouldClose(window)) {    
+        // call compute
+        Render(&atoms, shader_prog_id);
+        
+        glfwSwapBuffers(window);
+        glfwPollEvents();
     }
-    glfwMakeContextCurrent(window);
 
-    // call set_calc
-
-    gas_Atoms* atoms = NULL;
-    graph_DoMagic(window, atoms);
-
-    glfwDestroyWindow(window);
+    glfwTerminate();
 
     return 0;
 }
