@@ -18,10 +18,13 @@ struct eng_AtomList {
     size_t size;
     size_t divisions;
     float  radius;
+
+    float  box_size;
 };
 
-eng_Error eng_AtomListConstructor(eng_AtomList* list, size_t* size,
-                                                          uint16_t *divisions);
- 
+eng_Error eng_AtomListConstructor(eng_AtomList* atoms, size_t* size, uint16_t* divisions);
+eng_Error eng_UpdatePositions    (eng_AtomList* atoms, float delta_time);
+eng_Error eng_HandleInteractions (eng_AtomList* atoms);
+eng_Error eng_SetRandomPositions (eng_AtomList* atoms, size_t size);
 
 #endif // ENG_ATOMS_LIST_
