@@ -4,11 +4,10 @@
 #include "stdint.h"
 #include "../glm/glm/glm.hpp"
 
-struct gas_Atoms
-{
-    const glm::vec3* coords;
-    const size_t     n_coords;
-    const float      radius;
+struct gas_Atoms {
+    glm::vec3*   coords;
+    size_t     n_coords;
+    float        radius;
 };
 
 #endif // GAS_STRUCTS_H_ 
