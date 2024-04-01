@@ -1,4 +1,3 @@
-#include "fwd.hpp"
 #include "graphics.h"
 
 int main(const int argc, const char** argv) {
@@ -18,9 +17,6 @@ int main(const int argc, const char** argv) {
         .n_coords = n_at,
         .radius = 1.0f
     };
-
-
-    // graph_DoMagic(window, &atoms, shader_prog_id);
 
     while (!glfwWindowShouldClose(window)) {    
         // call compute

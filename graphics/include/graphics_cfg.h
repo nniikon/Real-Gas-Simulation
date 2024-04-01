@@ -1,7 +1,7 @@
 #ifndef GRAPHICS_CFG_H_
 #define GRAPHICS_CFG_H_
 
-#define GRAPHICS_DEBUG_SHADER
+// #define GRAPHICS_DEBUG_SHADER
 // #define GRAPHICS_DEBUG_CALLS
 
 static const int graph_kWindowWidth = 1024;

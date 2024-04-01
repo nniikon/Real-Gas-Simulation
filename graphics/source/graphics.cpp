@@ -7,19 +7,20 @@
 // #define STRINGIFY(str) #str
 
 // shaders
+                                    // "out vec4 Pos;\n"
+                                    // "    Pos = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
 static const char* vertex_shader = "#version 330 core\n"
                                     "layout (location = 0) in vec3 aPos;\n"
-                                    "out vec4 Pos;\n"
                                     "void main() {\n"
                                     "    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-                                    "    Pos = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
                                     "}\n\0";
 
+                                        // "FragColor = vec4(Pos.x, Pos.y, Pos.z, 1.0f);\n"
+                                    // "in vec4 Pos;\n"
 static const char* fragment_shader = "#version 330 core\n"
-                                    "in vec4 Pos;\n"
                                     "out vec4 FragColor;\n"
                                     "void main() {\n"
-                                        "FragColor = vec4(Pos.x, Pos.y, Pos.z, 1.0f);\n"
+                                        "FragColor = vec4(1.0, 0.5, 0.5, 1.0f);\n"
                                     "}\n\0";
 
 // callbacks
@@ -117,7 +118,7 @@ void Render(gas_Atoms* atoms, gl_id shader_prog_id) {
     
     glUseProgram(shader_prog_id); $
     glBindVertexArray(VAO); $
-    glDrawArrays(GL_TRIANGLES, 0, 3); $
+    glDrawArrays(GL_POINTS, 0, 3); $
 }
 
 // static ---------------------------------------------------------------------

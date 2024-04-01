@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include "fwd.hpp"
 #include "glad/glad.h"
 #include <GLFW/glfw3.h>
 
