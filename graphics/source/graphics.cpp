@@ -1,6 +1,6 @@
 #include "graphics.h"
-#include "fwd.hpp"
 #include "gas_structs.h"
+#include "glad/glad.h"
 
 // static ---------------------------------------------------------------------
 
@@ -89,6 +89,8 @@ gl_id graph_SetUpGl() {
     glDeleteShader(vertex_shader_id); $
     glDeleteShader(fragmet_shader_id); $
 
+    glPointSize(10.0f); $ //FIXME
+
     return shader_prog_id;
 }
 
@@ -104,8 +106,7 @@ void Render(gas_Atoms* atoms, gl_id shader_prog_id) {
     glBindVertexArray(VAO); $
     
     glBindBuffer(GL_ARRAY_BUFFER, VBO); $ // vbo now is ossosiated with array buffer
-    glBufferData(GL_ARRAY_BUFFER, atoms->n_coords * sizeof(float) * 3, atoms->coords, GL_STATIC_DRAW); $ // gl copy to buffer
-                                                                        // mb GL_DYNAMIC_DRAW
+    glBufferData(GL_ARRAY_BUFFER, atoms->n_coords * sizeof(float) * 3, atoms->coords, GL_DYNAMIC_DRAW); $ // gl copy to buffer
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0); $
 
@@ -119,6 +120,7 @@ void Render(gas_Atoms* atoms, gl_id shader_prog_id) {
     glUseProgram(shader_prog_id); $
     glBindVertexArray(VAO); $
     glDrawArrays(GL_POINTS, 0, 3); $
+    // glDrawArrays(GL_TRIANGLES, 0, 3); $
 }
 
 // static ---------------------------------------------------------------------
