@@ -138,11 +138,12 @@ static void graph_KeyboardCallback(GLFWwindow* window, int key, int scancode, in
     }
 }
 
-// debug    
+// debug ----------------------------------------------------------------------
+__attribute__((unused))
 static void GLLogError(size_t line) {
     GLenum error;
     while ((error = glGetError()) != GL_NO_ERROR) {
-        fprintf(stderr, "! Opengl error: %d, on line: %lu\n", error, line);
+        fprintf(stderr, "! Opengl error: %u, on line: %lu\n", error, line);
     }
 }
 

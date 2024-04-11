@@ -1,4 +1,5 @@
 #include "graphics.h"
+#include "engine.h"
 
 int main(const int argc, const char** argv) {
     GLFWwindow* window = graph_SetUpRender();
@@ -20,11 +21,12 @@ int main(const int argc, const char** argv) {
 
     while (!glfwWindowShouldClose(window)) {    
         // call compute
-        for (int i = 0; i < 9; i++) {
-            float tmp = *((float*)atms + i);
-            *((float*)atms + i) = *((float*)atms + (i + 1) % 9);
-            *((float*)atms + (i + 1) % 9) = tmp;
-        }
+
+        // for (int i = 0; i < 9; i++) {
+        //     float tmp = *((float*)atms + i);
+        //     *((float*)atms + i) = *((float*)atms + (i + 1) % 9);
+        //     *((float*)atms + (i + 1) % 9) = tmp;
+        // }
         Render(&atoms, shader_prog_id);
         
         glfwSwapBuffers(window);
