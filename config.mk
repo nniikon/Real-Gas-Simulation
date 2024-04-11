@@ -14,7 +14,7 @@ CFLAGS = -O0 -Wall -Waggressive-loop-optimizations \
 -fstack-protector -fstrict-overflow -flto-odr-type-merging \
 -fno-omit-frame-pointer -Wstack-usage=8192 \
 
-CFLAGS += -I../../glad/include/ -I../../common/ -I../include/ -I../../glm/glm/
+CFLAGS += -I../../glad/include/ -I../../common/ -I../include/ -I../../glm/glm/ \
 		  -I../engine/include
 
 CFLAGS += -lglfw -lGL -lX11 -lpthread -lXrandr -lXi
