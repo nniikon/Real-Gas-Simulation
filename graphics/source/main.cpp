@@ -1,5 +1,9 @@
+#include "gas_structs.h"
 #include "graphics.h"
 #include "engine.h"
+#include <cstddef>
+
+static const size_t kNOfAtoms = 10000;
 
 int main(const int argc, const char** argv) {
     GLFWwindow* window = graph_SetUpRender();
@@ -7,31 +11,24 @@ int main(const int argc, const char** argv) {
 
     gl_id shader_prog_id = graph_SetUpGl();
 
-    // call atms ctor
-    glm::vec3 atms[] = {{-0.5f, -0.5f, 0.0f},
-                        { 0.5f, -0.5f, 0.0f},
-                        { 0.0f,  0.5f, 0.0f}};
+    eng_Error eng_error = ENG_ERR_NO;
 
-    size_t n_at = 3;
-    gas_Atoms atoms = {
-        .coords = atms,
-        .n_coords = n_at,
-        .radius = 1.0f
-    };
+    gas_Atoms    atom      = {};
+    eng_AtomList atom_list = {};
 
-    while (!glfwWindowShouldClose(window)) {    
-        // call compute
+    eng_error = eng_Ctor(&atom, &atom_list, kNOfAtoms);
+    if (eng_error != ENG_ERR_NO) { fprintf(stderr, "fuck! [ %d ]\n", __LINE__); }
 
-        // for (int i = 0; i < 9; i++) {
-        //     float tmp = *((float*)atms + i);
-        //     *((float*)atms + i) = *((float*)atms + (i + 1) % 9);
-        //     *((float*)atms + (i + 1) % 9) = tmp;
-        // }
-        Render(&atoms, shader_prog_id);
+    while (!glfwWindowShouldClose(window)) {
+        eng_error = eng_Compute(&atom_list, 0.00001);
+        if (eng_error != ENG_ERR_NO) { fprintf(stderr, "fuck! [ %d ]\n", __LINE__); }        
+        Render(&atom, shader_prog_id);
         
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+
 
     glfwTerminate();
 
