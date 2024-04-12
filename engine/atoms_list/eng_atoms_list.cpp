@@ -55,30 +55,56 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
     assert(list);
     assert(size);
 
-    void* temp = calloc((size)             * sizeof(glm::vec3) * 2  +
-                        (size + divisions) * sizeof(size_t*  ) * 2, 1);
-    if (temp == nullptr) {
-        return ENG_ERR_MEM_ALLOC;
-    }
+    LOG_FUNC_START(gLogFile);
 
     list->size      = size;
     list->divisions = divisions;
 
-    list->positions  = (glm::vec3*)temp;
-    temp = (glm::vec3*)temp + size;
 
-    list->velocities = (glm::vec3*)temp;
-    temp = (glm::vec3*)temp + size;
+    eng_Error err = ENG_ERR_NO;
 
-    list->next = (size_t*)temp;
-    temp = (size_t*)temp + size + divisions;
+    list->positions  = (glm::vec3*) calloc(size, sizeof(glm::vec3));
+    if (list->positions == nullptr) {
+        err = ENG_ERR_MEM_ALLOC;
+        goto bad_alloc_positions;
+    }
 
-    list->prev = (size_t*)temp;
+    list->velocities = (glm::vec3*) calloc(size, sizeof(glm::vec3));
+    if (list->velocities == nullptr) {
+        err = ENG_ERR_MEM_ALLOC;
+        goto bad_alloc_velocities;
+    }
+
+    list->next = (size_t*) calloc(size, sizeof(size_t));
+    if (list->next == nullptr) {
+        err = ENG_ERR_MEM_ALLOC;
+        goto bad_alloc_next;
+    }
+
+    list->prev = (size_t*) calloc(size, sizeof(size_t));
+    if (list->prev == nullptr) {
+        err = ENG_ERR_MEM_ALLOC;
+        goto bad_alloc_prev;
+    }
 
     // TODO: fixme
     list->radius = 1.0f;
+    list->box_size = 1.0f;
+    list->divisions = 1;
 
+    LOG_FUNC_END(gLogFile);
     return ENG_ERR_NO;
+
+    bad_alloc_prev:
+    
+    bad_alloc_next:
+
+    bad_alloc_velocities:
+
+    bad_alloc_positions:
+
+    LOGF_ERR(gLogFile, "Ctor error");
+    return err;
 }
 
 
