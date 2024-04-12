@@ -1,0 +1,4 @@
+.cache/clangd/index
+build
+compile_commands.json
+VOVA_LOH.html
