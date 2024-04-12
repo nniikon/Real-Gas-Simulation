@@ -2,23 +2,27 @@
 
 #include "eng_atoms_list.h"
 #include <assert.h>
-#include <cwchar>
-#include <stdio.h>
 #include <stdlib.h>
+#include "../../libs/logs/logs.h"
 
 
-static FILE* kLogFile = nullptr;
+static FILE* gLogFile = nullptr;
+
+
+void eng_ListSetLogFile(FILE* file) {
+    gLogFile = file;
+}
 
 
 static float GetRandomCoordinate() {
     // Returns a random float value from [-1.0; 1.0]
-    return (float)rand() / (float)(RAND_MAX / 2) - 1.0;
+    return (float)rand() / (float)(RAND_MAX / 2) - 1.0f;
 }
 
 
 static float GetRandomVelocity() {
     // Returns a random float value from [-1.0; 1.0]
-    return (float)rand() / (float)(RAND_MAX / 2) - 1.0;
+    return (float)rand() / (float)(RAND_MAX / 2) - 1.0f;
 }
 
 
@@ -30,12 +34,18 @@ static glm::vec3 GetRandomVector(float (*func)()) {
 eng_Error eng_SetRandomPositions(eng_AtomList* atoms) {
     assert(atoms);
 
-    for (size_t i = 0; i < atoms->size; i++)
-    {
+    for (size_t i = 0; i < atoms->size; i++) {
         atoms->positions [i] = GetRandomVector(GetRandomCoordinate);
         atoms->velocities[i] = GetRandomVector(GetRandomVelocity);
     }
 
+    LOGF_COLOR(gLogFile, orange, "Set position: (%lg %lg %lg)\n", atoms->positions->x,
+                                                                  atoms->positions->y,
+                                                                  atoms->positions->z);
+
+    LOGF_COLOR(gLogFile, orange, "Set velocity: (%lg %lg %lg)\n", atoms->velocities->x,
+                                                                  atoms->velocities->y,
+                                                                  atoms->velocities->z);
     return ENG_ERR_NO;
 }
 
@@ -85,6 +95,9 @@ eng_Error eng_UpdatePositions(eng_AtomList* atoms, float delta_time) {
 
 
 static bool eng_HandleAtomCollision(eng_AtomList* atoms, size_t i, size_t j) {
+    assert(atoms);
+    LOG_FUNC_START(gLogFile);
+
     glm::vec3& pos1 = atoms->positions[i];
     glm::vec3& pos2 = atoms->positions[j];
     glm::vec3& vel1 = atoms->velocities[i];
@@ -113,6 +126,7 @@ static bool eng_HandleAtomCollision(eng_AtomList* atoms, size_t i, size_t j) {
     vel1 += impulseMagnitude * normal;
     vel2 -= impulseMagnitude * normal;
 
+    LOG_FUNC_END(gLogFile);
     return true;
 }
 
@@ -165,6 +179,9 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
 
 
 static void eng_HandleVanDerWaalseForce(eng_AtomList* atoms, size_t i, size_t j) {
+    assert(atoms);
+    LOG_FUNC_START(gLogFile);
+
     glm::vec3& pos1 = atoms->positions[i];
     glm::vec3& pos2 = atoms->positions[j];
     glm::vec3& vel1 = atoms->velocities[i];
@@ -181,7 +198,8 @@ static void eng_HandleVanDerWaalseForce(eng_AtomList* atoms, size_t i, size_t j)
     // Calculate the force magnitude using the Lennard-Jones potential
     // TODO: write own pow13 and pow7 functions 
     float r = distance / sigma;
-    float force = 24.0f * epsilon * (2.0f * pow(r, -13.0f) - pow(r, -7.0f));
+    float force = 24.0f * epsilon * (2.0f * (float)pow(r, -13.0f) -
+                                            (float)pow(r, -7.0f));
 
     // Calculate the force vector
     glm::vec3 force_vec= force * glm::normalize(delta_pos);
@@ -189,20 +207,29 @@ static void eng_HandleVanDerWaalseForce(eng_AtomList* atoms, size_t i, size_t j)
     // Apply the force to the velocities
     vel1 += force_vec;
     vel2 -= force_vec;
+
+    LOG_FUNC_END(gLogFile);
 }
 
 
 eng_Error eng_HandleInteractions(eng_AtomList* atoms) {
     assert(atoms);
+    LOG_FUNC_START(gLogFile);
 
-    size_t size  = atoms->size;
+    size_t size = atoms->size;
 
     // TODO: fix O(n^2)
     for (size_t i = 0; i < size - 1; i++) {
         for (size_t j = i + 1; j < size; j++) {
-
             eng_HandleAtomCollision    (atoms, i, j);
             eng_HandleVanDerWaalseForce(atoms, i, j);
+
+            for (size_t atom = 0; atom < atoms->size; atom++) {
+                LOGF_COLOR(gLogFile, blue, "Atom %lu\n", atom);
+                LOGF_COLOR(gLogFile, blue, "\t x %lg\n", atoms->positions[atom].x);
+                LOGF_COLOR(gLogFile, blue, "\t y %lg\n", atoms->positions[atom].y);
+                LOGF_COLOR(gLogFile, blue, "\t z %lg\n", atoms->positions[atom].z);
+            }
         }
         eng_HandleWallCollision(atoms, i);
     }
