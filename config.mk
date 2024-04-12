@@ -12,6 +12,10 @@ CFLAGS = -O0 -Wall \
 -Wno-varargs -Wstack-protector -fcheck-new \
 -fstack-protector -fstrict-overflow \
 -fno-omit-frame-pointer \
+-fsanitize=address,bool,bounds,enum,float-cast-overflow,$\
+float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,$\
+object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,$\
+undefined,unreachable,vla-bound,vptr
 
 CFLAGS += -I../../glad/include/ -I../../common/ -I../include/ -I../../glm/glm/ \
 		  -I../../engine/include -I./glad/include
