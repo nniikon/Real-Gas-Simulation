@@ -249,13 +249,6 @@ eng_Error eng_HandleInteractions(eng_AtomList* atoms) {
         for (size_t j = i + 1; j < size; j++) {
             eng_HandleAtomCollision    (atoms, i, j);
             eng_HandleVanDerWaalseForce(atoms, i, j);
-
-            for (size_t atom = 0; atom < atoms->size; atom++) {
-                LOGF_COLOR(gLogFile, blue, "Atom %lu\n", atom);
-                LOGF_COLOR(gLogFile, blue, "\t x %lg\n", atoms->positions[atom].x);
-                LOGF_COLOR(gLogFile, blue, "\t y %lg\n", atoms->positions[atom].y);
-                LOGF_COLOR(gLogFile, blue, "\t z %lg\n", atoms->positions[atom].z);
-            }
         }
         eng_HandleWallCollision(atoms, i);
     }

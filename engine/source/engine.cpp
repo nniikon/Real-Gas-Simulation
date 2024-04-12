@@ -49,6 +49,13 @@ eng_Error eng_Compute(eng_AtomList* list, const float deltaTime) {
     //eng_HandleInteractions(list);
     eng_UpdatePositions   (list, deltaTime);
 
+    for (size_t atom = 0; atom < list->size; atom++) {
+        LOGF_COLOR(gLogFile, blue, "Atom %lu\n", atom);
+        LOGF_COLOR(gLogFile, blue, "\t x %lg\n", list->positions[atom].x);
+        LOGF_COLOR(gLogFile, blue, "\t y %lg\n", list->positions[atom].y);
+        LOGF_COLOR(gLogFile, blue, "\t z %lg\n", list->positions[atom].z);
+    }
+
     LOG_FUNC_END(gLogFile);
     return ENG_ERR_NO;
 }
