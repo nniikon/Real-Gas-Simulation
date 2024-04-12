@@ -3,6 +3,7 @@
 #include "eng_atoms_list.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <immintrin.h>
 #include "../../libs/logs/logs.h"
 
 
@@ -203,36 +204,47 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
     return is_colliding;
 }
 
+static float pow7(float num) {
+    float num2 = num * num;     // num^2
+    float num4 = num2 * num2;   // num^4
+    return 1 / (num4 * num2 * num);   // num^7
+}
+
+static float pow13(float num) {
+    float num2 = num * num;     // num^2
+    float num4 = num2 * num2;   // num^4
+    float num8 = num4 * num4;   // num^8
+    return 1 / (num8 * num4 * num);   // num^13
+}
 
 static void eng_HandleVanDerWaalseForce(eng_AtomList* atoms, size_t i, size_t j) {
     assert(atoms);
     LOG_FUNC_START(gLogFile);
 
-    glm::vec3& pos1 = atoms->positions[i];
-    glm::vec3& pos2 = atoms->positions[j];
-    glm::vec3& vel1 = atoms->velocities[i];
-    glm::vec3& vel2 = atoms->velocities[j];
+    glm::vec3 *pos1 = &atoms->positions[i];
+    glm::vec3 *pos2 = &atoms->positions[j];
+    glm::vec3 *vel1 = &atoms->velocities[i];
+    glm::vec3 *vel2 = &atoms->velocities[j];
     float radius = atoms->radius;
 
     // Lennard-Jones constants
     float epsilon = 1.0f;
     float sigma = 2.0f * radius;
 
-    glm::vec3 delta_pos = pos2 - pos1;
+    glm::vec3 delta_pos = *pos2 - *pos1;
     float distance = glm::length(delta_pos);
 
     // Calculate the force magnitude using the Lennard-Jones potential
     // TODO: write own pow13 and pow7 functions 
     float r = distance / sigma;
-    float force = 24.0f * epsilon * (2.0f * (float)pow(r, -13.0f) -
-                                            (float)pow(r, -7.0f));
+    float force = 24.0f * epsilon * (2.0f * pow13(r) - pow7(r));
 
     // Calculate the force vector
     glm::vec3 force_vec= force * glm::normalize(delta_pos);
 
     // Apply the force to the velocities
-    vel1 += force_vec;
-    vel2 -= force_vec;
+    *vel1 += force_vec;
+    *vel2 -= force_vec;
 
     LOG_FUNC_END(gLogFile);
 }
