@@ -125,20 +125,20 @@ static bool eng_HandleAtomCollision(eng_AtomList* atoms, size_t i, size_t j) {
     assert(atoms);
     LOG_FUNC_START(gLogFile);
 
-    glm::vec3& pos1 = atoms->positions[i];
-    glm::vec3& pos2 = atoms->positions[j];
-    glm::vec3& vel1 = atoms->velocities[i];
-    glm::vec3& vel2 = atoms->velocities[j];
+    glm::vec3* pos1 = &atoms->positions[i];
+    glm::vec3* pos2 = &atoms->positions[j];
+    glm::vec3* vel1 = &atoms->velocities[i];
+    glm::vec3* vel2 = &atoms->velocities[j];
     float radius = atoms->radius;
 
-    glm::vec3 delta_pos = pos2 - pos1;
+    glm::vec3 delta_pos = *pos2 - *pos1;
     float distance = glm::length(delta_pos);
 
     if (distance >= 2.0f * radius) {
         return false;
     }
 
-    glm::vec3 relative_velocity = vel2 - vel1;
+    glm::vec3 relative_velocity = *vel2 - *vel1;
 
     glm::vec3 normal = glm::normalize(delta_pos);
     float dot_product = glm::dot(relative_velocity, normal);
@@ -148,10 +148,10 @@ static bool eng_HandleAtomCollision(eng_AtomList* atoms, size_t i, size_t j) {
         return false;
     }
 
-    float impulseMagnitude = -2.0f * dot_product;
+    float impulse_magnitude = -2.0f * dot_product;
 
-    vel1 += impulseMagnitude * normal;
-    vel2 -= impulseMagnitude * normal;
+    *vel1 += impulse_magnitude * normal;
+    *vel2 -= impulse_magnitude * normal;
 
     LOG_FUNC_END(gLogFile);
     return true;
