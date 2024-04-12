@@ -10,3 +10,6 @@ all:
 
 clean:
 	@rm -rf $(BUILD_DIR)
+
+run:
+	@$(BUILD_DIR)/$(EXEC_NAME)
