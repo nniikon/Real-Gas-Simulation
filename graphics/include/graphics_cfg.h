@@ -3,8 +3,10 @@
 
 #include <stddef.h>
 
-#define GRAPHICS_DEBUG_SHADER
-#define GRAPHICS_DEBUG_CALLS
+#if defined (DEBUG)
+    #define GRAPHICS_DEBUG_SHADER
+    #define GRAPHICS_DEBUG_CALLS
+#endif // DEBUG
 
 static const int   graph_kWindowWidth = 1024;
 static const int   graph_kWindowHeight = 512;

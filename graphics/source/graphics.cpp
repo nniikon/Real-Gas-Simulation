@@ -64,7 +64,7 @@ gl_id graph_SetUpGl() {
     glDeleteShader(vertex_shader_id); $
     glDeleteShader(fragment_shader_id); $
 
-    glPointSize(10.0f); $ //FIXME
+    glPointSize(2.0f); $ //FIXME
 
     return shader_prog_id;
 }
