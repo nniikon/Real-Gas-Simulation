@@ -1,9 +1,11 @@
 #include "gas_structs.h"
 #include "graphics.h"
 #include "engine.h"
+#include "../../libs/logs/logs.h"
 #include <cstddef>
+#include <unistd.h>
 
-static const size_t kNOfAtoms = 1000;
+static const size_t kNOfAtoms = 10;
 
 int main(const int argc, const char** argv) {
     GLFWwindow* window = graph_SetUpRender();
@@ -27,7 +29,7 @@ int main(const int argc, const char** argv) {
     if (eng_error != ENG_ERR_NO) { fprintf(stderr, "fuck! [ %d ]\n", __LINE__); }
 
     while (!glfwWindowShouldClose(window)) {
-        eng_error = eng_Compute(&atom_list, 0.00001f);
+        eng_error = eng_Compute(&atom_list, 0.001f);
         if (eng_error != ENG_ERR_NO) { fprintf(stderr, "fuck! [ %d ]\n", __LINE__); }        
         Render(&atom, shader_prog_id);
         
@@ -37,7 +39,7 @@ int main(const int argc, const char** argv) {
         sleep(1);
     }
 
-
+    fclose(log_file);
 
     glfwTerminate();
 
