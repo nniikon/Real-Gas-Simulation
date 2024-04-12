@@ -88,8 +88,8 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
     }
 
     // TODO: fixme
-    list->radius = 1.0f;
-    list->box_size = 1.0f;
+    list->radius = 0.00001f;
+    list->box_size = 0.9f;
     list->divisions = 1;
 
     LOG_FUNC_END(gLogFile);
@@ -167,8 +167,8 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
 
     // TODO: fix copypaste
     // Check collision with each wall and handle the bounce
-    if (position.x - radius <= 0.0f) {
-        position.x = radius;
+    if (position.x - radius <= -box_size) {
+        position.x = radius - box_size;
         velocity.x = -velocity.x;
         is_colliding = true;
     }
@@ -178,8 +178,8 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
         is_colliding = true;
     }
 
-    if (position.y - radius <= 0.0f) {
-        position.y = radius;
+    if (position.y - radius <= -box_size) {
+        position.y = radius - box_size;
         velocity.y = -velocity.y;
         is_colliding = true;
     }
@@ -189,8 +189,8 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
         is_colliding = true;
     }
 
-    if (position.z - radius <= 0.0f) {
-        position.z = radius;
+    if (position.z - radius <= -box_size) {
+        position.z = radius - box_size;
         velocity.z = -velocity.z;
         is_colliding = true;
     }

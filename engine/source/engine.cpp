@@ -46,7 +46,7 @@ eng_Error eng_Compute(eng_AtomList* list, const float deltaTime) {
     assert(list);
     LOG_FUNC_START(gLogFile);
 
-    //eng_HandleInteractions(list);
+    eng_HandleInteractions(list);
     eng_UpdatePositions   (list, deltaTime);
 
     for (size_t atom = 0; atom < list->size; atom++) {
