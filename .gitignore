@@ -2,3 +2,8 @@
 build
 compile_commands.json
 VOVA_LOH.html
+notes
+.clang-format
+perf.data
+perf.data.old
+callgrind.out.*
