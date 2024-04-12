@@ -10,8 +10,7 @@
 
 #include "gas_structs.h"
 #include "graphics_cfg.h"
-
-typedef unsigned int gl_id;
+#include "graphics_defs.h"
 
 // setup
 GLFWwindow* graph_SetUpRender();
