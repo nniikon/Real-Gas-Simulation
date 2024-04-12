@@ -2,18 +2,15 @@
 #include "../../libs/logs/logs.h"
 
 #include <assert.h>
-#include <stdio.h>
 
-static FILE* kLogFile = nullptr;
+static FILE* gLogFile = nullptr;
 
-const char* eng_GetErrorMsg(const eng_Error err)
-{
+const char* eng_GetErrorMsg(const eng_Error err) {
     #define DEF_ERR(err, msg)                                                  \
         case ENG_ERR_ ## err:                                                  \
             return msg;
 
-    switch (err)
-    {
+    switch (err) {
         #include "../include/engine_errors_codegen.inc"
         default:
             return "No such error was found";
@@ -21,8 +18,13 @@ const char* eng_GetErrorMsg(const eng_Error err)
     #undef DEF_ERR
 }
 
-eng_Error eng_Ctor(gas_Atoms* atoms, eng_AtomList* list, const size_t n_atoms)
-{
+
+void eng_SetLogFile(FILE* file) {
+    gLogFile = file;
+}
+
+
+eng_Error eng_Ctor(gas_Atoms* atoms, eng_AtomList* list, const size_t n_atoms) {
     assert(list);
 
     // TODO: cringe
