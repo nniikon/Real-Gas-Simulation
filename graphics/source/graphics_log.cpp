@@ -9,7 +9,7 @@ void GLLogError(size_t line) {
     }
 }
 
-void GLLogShaderError(gl_id shader_id) {
+void GLLogShaderError(GLId shader_id) {
 #ifdef GRAPHICS_DEBUG_SHADER
     int success = 0;
     char log[512];
@@ -22,7 +22,7 @@ void GLLogShaderError(gl_id shader_id) {
 #endif // GRAPHICS_DEBUG
 }
 
-void GLLogLinkError(gl_id shader_program) {
+void GLLogLinkError(GLId shader_program) {
 #ifdef GRAPHICS_DEBUG_SHADER
     int success = 0;
     char log[512];

@@ -9,7 +9,7 @@
 #endif // DEBUG
 
 static const int   graph_kWindowWidth = 1024;
-static const int   graph_kWindowHeight = 512;
+static const int   graph_kWindowHeight = 1024;
 __attribute__((unused))
 static const char* graph_kWindowTitle = "real shit";
 __attribute__((unused))

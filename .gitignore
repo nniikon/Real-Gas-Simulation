@@ -7,3 +7,4 @@ notes
 perf.data
 perf.data.old
 callgrind.out.*
+log

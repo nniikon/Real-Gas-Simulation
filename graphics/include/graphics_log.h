@@ -18,7 +18,7 @@
 #endif // GRAPHICS_DEBUG_CALLS
 
 void GLLogError(size_t line);
-void GLLogShaderError(gl_id shader_id);
-void GLLogLinkError(gl_id shader_program);
+void GLLogShaderError(GLId shader_id);
+void GLLogLinkError(GLId shader_program);
 
 #endif

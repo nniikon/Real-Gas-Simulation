@@ -15,8 +15,8 @@
 // setup
 GLFWwindow* graph_SetUpRender();
 // returns shader program handle
-gl_id graph_SetUpGl();
+GLId graph_CompileShaders();
 
-void Render(gas_Atoms* atoms, gl_id shader_prog_id);
+void Render(gas_Atoms* atoms, GLId shader_prog_id);
 
 #endif // GRAPHICS_H_
