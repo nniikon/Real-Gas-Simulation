@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 CFLAGS = -O3 -Wall \
+=======
+CFLAGS = -O0 -g -Wall \
+>>>>>>> c9325d0 (added -g to config.mk)
 -Wmissing-declarations -Wcast-align -Wcast-qual \
 -Wchar-subscripts -Wconversion \
 -Wempty-body -Wfloat-equal -Wformat-nonliteral -Wformat-security \
