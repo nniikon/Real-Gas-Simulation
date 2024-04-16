@@ -31,7 +31,7 @@ eng_Error eng_Ctor(gas_Atoms* atoms, eng_AtomList* list, const size_t n_atoms) {
 
     // TODO: cringe
     // TODO: error check
-    eng_AtomListConstructor(list, n_atoms, 30);
+    eng_AtomListConstructor(list, n_atoms, 20);
     eng_SetRandomPositions (list);
 
     atoms->coords = list->positions;
