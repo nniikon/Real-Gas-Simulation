@@ -13,11 +13,12 @@ enum eng_Error {
 struct eng_AtomList {
     glm::vec3* positions;
     glm::vec3* velocities;
-    size_t*    prev;
-    size_t*    next;
+    int64_t*   prev;
+    int64_t*   next;
 
     size_t size;
-    size_t divisions;
+    size_t axis_divisions;
+    size_t space_divisions;
     float  radius;
 
     float  box_size;

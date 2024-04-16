@@ -31,7 +31,7 @@ eng_Error eng_Ctor(gas_Atoms* atoms, eng_AtomList* list, const size_t n_atoms) {
 
     // TODO: cringe
     // TODO: error check
-    eng_AtomListConstructor(list, n_atoms, 9);
+    eng_AtomListConstructor(list, n_atoms, 30);
     eng_SetRandomPositions (list);
 
     atoms->coords = list->positions;
@@ -49,12 +49,12 @@ eng_Error eng_Compute(eng_AtomList* list, const float deltaTime) {
     eng_HandleInteractions(list);
     eng_UpdatePositions   (list, deltaTime);
 
-    for (size_t atom = 0; atom < list->size; atom++) {
-        LOGF_COLOR(gLogFile, blue, "Atom %lu\n", atom);
-        LOGF_COLOR(gLogFile, blue, "\t x %lg\n", list->positions[atom].x);
-        LOGF_COLOR(gLogFile, blue, "\t y %lg\n", list->positions[atom].y);
-        LOGF_COLOR(gLogFile, blue, "\t z %lg\n", list->positions[atom].z);
-    }
+    //for (size_t atom = 0; atom < list->size; atom++) {
+    //    LOGF_COLOR(gLogFile, blue, "Atom %lu\n", atom);
+    //    LOGF_COLOR(gLogFile, blue, "\t x %lg\n", list->positions[atom].x);
+    //    LOGF_COLOR(gLogFile, blue, "\t y %lg\n", list->positions[atom].y);
+    //    LOGF_COLOR(gLogFile, blue, "\t z %lg\n", list->positions[atom].z);
+    //}
 
     LOG_FUNC_END(gLogFile);
     return ENG_ERR_NO;

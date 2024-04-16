@@ -9,6 +9,15 @@
 
 static FILE* gLogFile = nullptr;
 
+static float     GetRandomCoordinate();
+static float     GetRandomVelocity();
+static glm::vec3 GetRandomVector(float (*func)());
+static bool eng_HandleAtomCollision    (eng_AtomList* atoms, size_t i, size_t j);
+static void eng_HandleVanDerWaalseForce(eng_AtomList* atoms, size_t i, size_t j);
+static bool eng_HandleWallCollision    (eng_AtomList* atoms, size_t pos);
+static void eng_AdjustLists            (eng_AtomList* atoms);
+static void eng_DumpDivisions          (eng_AtomList* atoms);
+
 
 void eng_ListSetLogFile(FILE* file) {
     gLogFile = file;
@@ -40,13 +49,6 @@ eng_Error eng_SetRandomPositions(eng_AtomList* atoms) {
         atoms->velocities[i] = GetRandomVector(GetRandomVelocity);
     }
 
-    LOGF_COLOR(gLogFile, orange, "Set position: (%lg %lg %lg)\n", atoms->positions->x,
-                                                                  atoms->positions->y,
-                                                                  atoms->positions->z);
-
-    LOGF_COLOR(gLogFile, orange, "Set velocity: (%lg %lg %lg)\n", atoms->velocities->x,
-                                                                  atoms->velocities->y,
-                                                                  atoms->velocities->z);
     return ENG_ERR_NO;
 }
 
@@ -58,9 +60,12 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
 
     LOG_FUNC_START(gLogFile);
 
+    // TODO: fixme
+    list->radius = 0.00001f;
+    list->box_size = 0.9f;
+    list->axis_divisions = divisions;
+    list->space_divisions = divisions * divisions * divisions;
     list->size      = size;
-    list->divisions = divisions;
-
 
     eng_Error err = ENG_ERR_NO;
 
@@ -76,32 +81,30 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
         goto bad_alloc_velocities;
     }
 
-    list->next = (size_t*) calloc(size, sizeof(size_t));
+    list->next = (int64_t*) calloc(size + list->space_divisions, sizeof(int64_t));
     if (list->next == nullptr) {
         err = ENG_ERR_MEM_ALLOC;
         goto bad_alloc_next;
     }
 
-    list->prev = (size_t*) calloc(size, sizeof(size_t));
+    list->prev = (int64_t*) calloc(size + list->space_divisions, sizeof(int64_t));
     if (list->prev == nullptr) {
         err = ENG_ERR_MEM_ALLOC;
         goto bad_alloc_prev;
     }
 
-    // TODO: fixme
-    list->radius = 0.00001f;
-    list->box_size = 0.9f;
-    list->divisions = 1;
+    list->next += list->space_divisions;
+    list->prev += list->space_divisions;
 
     LOG_FUNC_END(gLogFile);
     return ENG_ERR_NO;
 
     bad_alloc_prev:
-    
+    free(list->next);
     bad_alloc_next:
-
+    free(list->velocities);
     bad_alloc_velocities:
-
+    free(list->positions);
     bad_alloc_positions:
 
     LOGF_ERR(gLogFile, "Ctor error");
@@ -132,9 +135,9 @@ static bool eng_HandleAtomCollision(eng_AtomList* atoms, size_t i, size_t j) {
     float radius = atoms->radius;
 
     glm::vec3 delta_pos = *pos2 - *pos1;
-    float distance = glm::length(delta_pos);
+    float distance2 = glm::dot(delta_pos, delta_pos);
 
-    if (distance >= 2.0f * radius) {
+    if (distance2 >= 4.0f * radius * radius) {
         return false;
     }
 
@@ -204,17 +207,18 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
     return is_colliding;
 }
 
-static float pow7(float num) {
-    float num2 = num * num;     // num^2
-    float num4 = num2 * num2;   // num^4
-    return 1 / (num4 * num2 * num);   // num^7
+
+static float PowNeg7(float num) {
+    float num2 = num * num;         // num^2
+    float num4 = num2 * num2;       // num^4
+    return 1 / (num4 * num2 * num); // num^7
 }
 
-static float pow13(float num) {
-    float num2 = num * num;     // num^2
-    float num4 = num2 * num2;   // num^4
-    float num8 = num4 * num4;   // num^8
-    return 1 / (num8 * num4 * num);   // num^13
+static float PowNeg13(float num) {
+    float num2 = num * num;         // num^2
+    float num4 = num2 * num2;       // num^4
+    float num8 = num4 * num4;       // num^8
+    return 1 / (num8 * num4 * num); // num^13
 }
 
 static void eng_HandleVanDerWaalseForce(eng_AtomList* atoms, size_t i, size_t j) {
@@ -235,9 +239,8 @@ static void eng_HandleVanDerWaalseForce(eng_AtomList* atoms, size_t i, size_t j)
     float distance = glm::length(delta_pos);
 
     // Calculate the force magnitude using the Lennard-Jones potential
-    // TODO: write own pow13 and pow7 functions 
     float r = distance / sigma;
-    float force = 24.0f * epsilon * (2.0f * pow13(r) - pow7(r));
+    float force = 24.0f * epsilon * (2.0f * PowNeg13(r) - PowNeg7(r));
 
     // Calculate the force vector
     glm::vec3 force_vec= force * glm::normalize(delta_pos);
@@ -250,20 +253,166 @@ static void eng_HandleVanDerWaalseForce(eng_AtomList* atoms, size_t i, size_t j)
 }
 
 
+static eng_Error eng_ListPush(eng_AtomList* atoms, int64_t list_index, int64_t elem_index) {
+    assert(atoms);
+    assert(list_index <= atoms->space_divisions);
+    assert(elem_index < atoms->size);
+
+    LOGF(gLogFile, "eng_ListPush: %lu %lu\n", list_index, elem_index);
+
+    int64_t last = atoms->prev[-list_index];
+    atoms->next[elem_index] = -list_index;
+    atoms->prev[elem_index] = last;
+    atoms->next[last] = elem_index;
+    atoms->prev[-list_index] = elem_index;
+    
+    return ENG_ERR_NO;
+}
+
+
+static inline int64_t iabs(int64_t num) {
+    if (num >= 0) {
+        return num;
+    }
+    else {
+        return -num;
+    }
+}
+
+
 eng_Error eng_HandleInteractions(eng_AtomList* atoms) {
     assert(atoms);
     LOG_FUNC_START(gLogFile);
 
-    size_t size = atoms->size;
+    int64_t size = (int64_t)atoms->size;
 
-    // TODO: fix O(n^2)
-    for (size_t i = 0; i < size - 1; i++) {
-        for (size_t j = i + 1; j < size; j++) {
-            eng_HandleAtomCollision    (atoms, i, j);
-            eng_HandleVanDerWaalseForce(atoms, i, j);
+    for (int64_t i = 0; i < size; i++) {
+        eng_HandleWallCollision(atoms, (size_t)i);
+    }
+
+    eng_AdjustLists(atoms);
+
+    int64_t space_divisions = (int64_t)atoms->space_divisions;
+    int64_t  axis_divisions = (int64_t)atoms-> axis_divisions;
+
+    for (int64_t main_list = -space_divisions; main_list < 0; main_list++) {
+        for (int64_t neighbour_list = -space_divisions; neighbour_list < 0; neighbour_list++) {
+
+            int64_t main_list_num = -main_list;
+            int64_t main_x = main_list_num % axis_divisions;
+            main_x = main_x / axis_divisions;
+            int64_t main_y = main_list_num % axis_divisions;
+            main_y = main_y / axis_divisions;
+            int64_t main_z = main_list_num % axis_divisions;
+
+            int64_t neighbour_list_num = -neighbour_list;
+            int64_t neighbour_x = neighbour_list_num % axis_divisions;
+            neighbour_x = neighbour_x / axis_divisions;
+            int64_t neighbour_y = neighbour_list_num % axis_divisions;
+            neighbour_y = neighbour_y / axis_divisions;
+            int64_t neighbour_z = neighbour_list_num % axis_divisions;
+
+            if (iabs(neighbour_x - main_x) > 1 ||
+                iabs(neighbour_y - main_y) > 1 ||
+                iabs(neighbour_z - main_z) > 1)
+            {
+                continue;
+            }
+
+            if (neighbour_x - main_x == 0 &&
+                neighbour_y - main_y == 0 &&
+                neighbour_z - main_z == 0)
+            {
+                continue;
+            }
+
+            int64_t main_elem = atoms->next[main_list];
+            while (main_elem >= 0) {
+                int64_t neig_elem = atoms->next[neighbour_list];
+                while (neig_elem >= 0) {
+                    eng_HandleAtomCollision    (atoms, (size_t)main_elem, (size_t)neig_elem);
+                    eng_HandleVanDerWaalseForce(atoms, (size_t)main_elem, (size_t)neig_elem);
+                    neig_elem = atoms->next[neig_elem];
+                }
+                main_elem = atoms->next[main_elem];
+            }
+
         }
-        eng_HandleWallCollision(atoms, i);
     }
 
     return ENG_ERR_NO;
+}
+
+
+static void eng_DumpDivisions(eng_AtomList* atoms) {
+    size_t* list_sizes = (size_t*) calloc(atoms->space_divisions, sizeof(size_t));
+    if (list_sizes == nullptr) {
+        return;
+    }
+
+    LOGF_COLOR(gLogFile, green, "ALL ELEMENTS\n");
+    for (int64_t list_index = -(int64_t)atoms->space_divisions; list_index < (int64_t)atoms->size; list_index++) {
+        LOGF_COLOR(gLogFile, green, "#%ld: PREV: %ld NEXT: %ld\n", list_index, atoms->prev[list_index],
+                                                             atoms->next[list_index]);
+    }
+
+    LOGF_COLOR(gLogFile, green, "LISTS\n");
+    for (size_t list_index = 1; list_index <= atoms->space_divisions; list_index++) {
+        int64_t cur_elem = atoms->next[-list_index];
+        LOGF_COLOR(gLogFile, green, "List #%ld\t\n", list_index);
+        while (cur_elem >= 0) {
+            LOGF_COLOR(gLogFile, orange, "\t\t elem: %ld\n", cur_elem);
+            list_sizes[list_index - 1]++;
+            cur_elem = atoms->next[cur_elem];
+        }
+
+        LOGF_COLOR(gLogFile, green, "List #%ld: %ld\n", list_index, list_sizes[list_index - 1]);
+    }
+}
+
+
+static void eng_AdjustLists(eng_AtomList* atoms) {
+    assert(atoms);
+
+    // Reset the lists
+    for (int64_t i = -1; i >= -atoms->space_divisions; i--) {
+        atoms->next[i] = i;
+        atoms->prev[i] = i;
+    }
+
+    size_t  axis_divisions = atoms-> axis_divisions;             // 3
+    size_t space_divisions = atoms->space_divisions;             // 27
+    float  box_size        = atoms->box_size;                    // 0.9
+    float  box_length      = 2 * box_size;                       // 1.8
+    float  div_length      = box_length / (float)axis_divisions; // 0.6
+
+    assert(axis_divisions * axis_divisions * axis_divisions == space_divisions);
+
+    for (size_t n_atom = 0; n_atom < atoms->size; n_atom++) {
+        for (size_t x = 0; x < axis_divisions; x++) {
+            for (size_t y = 0; y < axis_divisions; y++) {
+                for (size_t z = 0; z < axis_divisions; z++) {
+                    float x_low = ((float) x      * div_length) - box_size;
+                    float x_top = ((float)(x + 1) * div_length) - box_size;
+                    float y_low = ((float) y      * div_length) - box_size;
+                    float y_top = ((float)(y + 1) * div_length) - box_size;
+                    float z_low = ((float) z      * div_length) - box_size;
+                    float z_top = ((float)(z + 1) * div_length) - box_size;
+
+                    float pos_x = atoms->positions[n_atom].x;
+                    float pos_y = atoms->positions[n_atom].y;
+                    float pos_z = atoms->positions[n_atom].z;
+
+                    if (x_low <= pos_x && pos_x <= x_top &&
+                        y_low <= pos_y && pos_y <= y_top &&
+                        z_low <= pos_z && pos_z <= z_top)
+                    {
+                        size_t list_index = axis_divisions * axis_divisions * x + 
+                                            axis_divisions * y + z;
+                        eng_ListPush(atoms, (int64_t)list_index, (int64_t)n_atom);
+                    }
+                }
+            }
+        }
+    }
 }
