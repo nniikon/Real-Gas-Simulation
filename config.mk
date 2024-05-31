@@ -1,4 +1,4 @@
-CFLAGS = -O0 -Wall \
+CFLAGS = -O3 -Wall \
 -Wmissing-declarations -Wcast-align -Wcast-qual \
 -Wchar-subscripts -Wconversion \
 -Wempty-body -Wfloat-equal -Wformat-nonliteral -Wformat-security \
@@ -16,8 +16,8 @@ CFLAGS = -O0 -Wall \
 CFLAGS += -I../../glad/include/ -I../../common/ -I../include/ -I../../glm/glm/ \
 		  -I../../engine/include -I./glad/include
 
-CFLAGS += -D DEBUG
-CFLAGS += -D LOG
+CFLAGS += -D NDEBUG
+CFLAGS += -D NLOG
 
 export CFLAGS
 
