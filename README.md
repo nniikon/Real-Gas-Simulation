@@ -4,6 +4,13 @@
     <img src="./media/gif.gif" alt="drawing" width="500"/>
 </p>
 
+## Features
+
+- Renders in 3D.
+- Handles all collisions.
+- Considers Lennard-Jones potential.
+- Divides space into chunks for better performance.
+
 ## Compiling the Project
 ### Install Dependencies
 
