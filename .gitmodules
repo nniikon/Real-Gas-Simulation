@@ -1,6 +1,3 @@
-[submodule "glad"]
-	path = glad
-	url = https://github.com/Olgardos/glad
 [submodule "glm"]
 	path = glm
 	url = https://github.com/g-truc/glm
