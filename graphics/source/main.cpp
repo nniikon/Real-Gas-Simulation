@@ -1,24 +1,29 @@
-#include "gas_structs.h"
-#include "graphics.h"
-#include "engine.h"
-#include "../../libs/logs/logs.h"
 #include <cstddef>
 #include <unistd.h>
+#include <iostream>
 
-static const size_t kNOfAtoms = 4000;
+#include "../../libs/logs/logs.h"
+#include "gas_structs.h"
+#include "engine.h"
+#include "graphics.h"
+
+static const size_t kNOfAtoms = 10000;
 
 int main(const int argc, const char** argv) {
     GLFWwindow* window = graph_SetUpRender();
-    if (window == nullptr) { return -1; }
+    if (window == nullptr) { 
+        std::cerr << "Unable to open window" << std::endl;    
+        return -1; 
+    }
 
     graph_TellAboutControls();
 
     GraphShaders shaders = graph_CompileShaders();
-    glPointSize(2.0f); //FIXME
+    glPointSize(kPointSize);
 
-    FILE* log_file = logOpenFile("VOVA_LOH.html");
+    FILE* log_file = logOpenFile("engine_dump.html");
     if (log_file == nullptr) {
-        fprintf(stderr, "Error opening logfile\n");
+        std::cerr << "Error opening logfile" << std::endl; 
         return 1;
     }
     eng_SetLogFile(log_file);
@@ -29,11 +34,20 @@ int main(const int argc, const char** argv) {
     eng_AtomList atom_list = {};
 
     eng_error = eng_Ctor(&atom, &atom_list, kNOfAtoms);
-    if (eng_error != ENG_ERR_NO) { fprintf(stderr, "engine ctor error! [ %d ]\n", __LINE__); return 1; }
+    if (eng_error != ENG_ERR_NO) { 
+        std::cerr << "engine ctor error! [ " << __LINE__ << " ]" 
+                  << std::endl; 
+        return -1; 
+    }
 
     while (!glfwWindowShouldClose(window)) {
-        eng_error = eng_Compute(&atom_list, 0.01f);
-        if (eng_error != ENG_ERR_NO) { fprintf(stderr, "engine compute error! [ %d ]\n", __LINE__); return 1; }        
+        const float dtime = 0.01f; //FIXME
+        eng_error = eng_Compute(&atom_list, dtime);
+        if (eng_error != ENG_ERR_NO) { 
+            std::cerr << "engine compute error! [ " << __LINE__ << " ]" 
+                      << std::endl; 
+            return -1; 
+        }        
 
         Render(&atom, shaders);
         
@@ -42,7 +56,7 @@ int main(const int argc, const char** argv) {
     }
 
     fclose(log_file);
-
+    
     glfwTerminate();
 
     return 0;

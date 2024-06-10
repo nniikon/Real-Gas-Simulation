@@ -8,11 +8,15 @@
     #define GRAPHICS_DEBUG_CALLS
 #endif // DEBUG
 
-static const int   graph_kWindowWidth = 1024;
-static const int   graph_kWindowHeight = 1024;
-__attribute__((unused))
-static const char* graph_kWindowTitle = "real shit";
-__attribute__((unused))
-static const size_t kNDimensions = 3; 
+#define UNUSED __attribute__((unused))
+
+UNUSED static const int kOpenGLMajorVersion    = 3;
+UNUSED static const int kOpenGLMinorVersion    = 3;
+
+UNUSED static const size_t kNDimensions        = 3; 
+UNUSED static const int    graph_kWindowWidth  = 1024;
+UNUSED static const int    graph_kWindowHeight = 1024;
+UNUSED static const char*  graph_kWindowTitle  = "gas experiment";
+UNUSED static const float  kPointSize          = 2.0f;
 
 #endif // GRAPHICS_CFG_H_

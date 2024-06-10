@@ -10,9 +10,10 @@
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
 #include "gtx/string_cast.hpp"
+#include "glad/glad.h"
 
 #include "gas_structs.h"
-#include "glad/glad.h"
+
 #include "graphics_cfg.h"
 #include "graphics_defs.h"
 #include "graphics_log.h"
@@ -27,16 +28,17 @@ static float scale_scene = 0.5f;
 // callbacks
 static void graph_FrameBufferSizeCallback(GLFWwindow* window, int width, int height);
 static void graph_KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+static glm::mat4 GetRotationMatrix();
 static GLId graph_CompileProgram(const char* vert_shader, const char* frag_shader);
 
 // global ----------------------------------------------------------------------
 // setup
 GLFWwindow* graph_SetUpRender() {
-    static_assert(sizeof(glm::vec3) == sizeof(float) * 3, "FUCK GLM");
+    static_assert(sizeof(glm::vec3) == sizeof(float) * 3, "is glm stupid?");
 
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, kOpenGLMajorVersion);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, kOpenGLMinorVersion);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     GLFWwindow* window = glfwCreateWindow(graph_kWindowHeight,
@@ -44,7 +46,7 @@ GLFWwindow* graph_SetUpRender() {
                                           graph_kWindowTitle,
                                           NULL,
                                           NULL);
-    if (window == nullptr) { 
+    if (window == nullptr) {
         glfwTerminate();
         return nullptr;
     }
@@ -62,6 +64,17 @@ GLFWwindow* graph_SetUpRender() {
     return window;
 }
 
+void graph_TellAboutControls() {
+    std::cout << "Quit: Q" << std::endl
+              << "Rotate +X: Z" << std::endl
+              << "Rotate +Y: X" << std::endl
+              << "Rotate +Z: C" << std::endl
+              << "Rotate -X: A" << std::endl
+              << "Rotate -Y: S" << std::endl
+              << "Rotate -Z: D" << std::endl
+              << "Dump velocities: V" << std::endl;
+}
+
 GraphShaders graph_CompileShaders() {
     // load shaders
     std::vector<std::string> file_names_arr;
@@ -73,10 +86,10 @@ GraphShaders graph_CompileShaders() {
 
     std::vector<std::string> shader_arr = graph_LoadShaders(file_names_arr);
     
-    int64_t main_frag_ind = 0;
-    int64_t main_vert_ind = 1;
-    int64_t box_frag_ind  = 2;
-    int64_t box_vert_ind  = 3;
+    size_t main_frag_ind = 0;
+    size_t main_vert_ind = 1;
+    size_t box_frag_ind  = 2;
+    size_t box_vert_ind  = 3;
 
     const char* main_frag_shader = shader_arr[main_frag_ind].c_str();
     const char* main_vert_shader = shader_arr[main_vert_ind].c_str();
@@ -94,16 +107,7 @@ GraphShaders graph_CompileShaders() {
 void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
     assert(atoms != nullptr);
 
-    glm::mat4 rotate_mat_x = glm::mat4(1.0f);
-    glm::mat4 rotate_mat_y = glm::mat4(1.0f);
-    glm::mat4 rotate_mat_z = glm::mat4(1.0f);
-
-    rotate_mat_x = glm::rotate(rotate_mat_x, glm::radians((float)angle_vec.x), glm::vec3(1.0, 0.0, 0.0));
-    rotate_mat_y = glm::rotate(rotate_mat_y, glm::radians((float)angle_vec.y), glm::vec3(0.0, 1.0, 0.0));
-    rotate_mat_z = glm::rotate(rotate_mat_z, glm::radians((float)angle_vec.z), glm::vec3(0.0, 0.0, 1.0));
-
-    glm::mat4 rotate_mat = rotate_mat_x * rotate_mat_y * rotate_mat_z;
-    // rotate_mat = glm::rotate(rotate_mat, glm::radians((float)angle), glm::vec3(0.0, 1.0, 1.0));
+    glm::mat4 rotate_mat = GetRotationMatrix();
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f); $
     glClear(GL_COLOR_BUFFER_BIT); $
@@ -118,12 +122,12 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
     
     glBindBuffer(GL_ARRAY_BUFFER, VBO_atoms); $ // vbo now is associated with array buffer
     glBufferData(GL_ARRAY_BUFFER, 
-                 (GLsizeiptr)(atoms->n_coords * sizeof(float) * 3), 
+                 (GLsizeiptr)(atoms->n_coords * sizeof(glm::vec3)), 
                  atoms->coords, 
                  GL_DYNAMIC_DRAW); $ // gl copy to buffer
 
     // why 0?
-    glVertexAttribPointer(0, kNDimensions, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0); $
+    glVertexAttribPointer(0, kNDimensions, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0); $
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); $
     glBindVertexArray(0); $
@@ -162,7 +166,7 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
                  GL_STATIC_DRAW); $ // gl copy to buffer
 
     // why 0?
-    glVertexAttribPointer(0, kNDimensions, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0); $
+    glVertexAttribPointer(0, kNDimensions, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0); $
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); $
     glBindVertexArray(0); $
@@ -215,16 +219,18 @@ static GLId graph_CompileProgram(const char* vert_shader, const char* frag_shade
     return shader_prog_id;
 }
 
-void graph_TellAboutControls() {
-    std::cout << "Quit: Q" << std::endl
-              << "Rotate +X: Z" << std::endl
-              << "Rotate +Y: X" << std::endl
-              << "Rotate +Z: C" << std::endl
-              << "Rotate -X: A" << std::endl
-              << "Rotate -Y: S" << std::endl
-              << "Rotate -Z: D" << std::endl
-              << "Dump velocities: V" << std::endl;
-}
+static glm::mat4 GetRotationMatrix() {
+    glm::mat4 rotate_mat_x = glm::mat4(1.0f);
+    glm::mat4 rotate_mat_y = glm::mat4(1.0f);
+    glm::mat4 rotate_mat_z = glm::mat4(1.0f);
+
+    rotate_mat_x = glm::rotate(rotate_mat_x, glm::radians((float)angle_vec.x), glm::vec3(1.0, 0.0, 0.0));
+    rotate_mat_y = glm::rotate(rotate_mat_y, glm::radians((float)angle_vec.y), glm::vec3(0.0, 1.0, 0.0));
+    rotate_mat_z = glm::rotate(rotate_mat_z, glm::radians((float)angle_vec.z), glm::vec3(0.0, 0.0, 1.0));
+
+    glm::mat4 rotate_mat = rotate_mat_x * rotate_mat_y * rotate_mat_z;
+    return rotate_mat;
+} 
 
 // callbacks
 

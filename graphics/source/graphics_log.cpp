@@ -1,8 +1,12 @@
 #include "graphics_log.h"
 
+#include <cassert>
+
 // debug -----------------------------------------------------------------------
 __attribute__((unused))
 void GLLogError(const char* file_name, size_t line) {
+    assert(file_name != nullptr);
+
     GLenum error;
     while ((error = glGetError()) != GL_NO_ERROR) {
         fprintf(stderr, "! Opengl error: %u, %s:%lu\n", error, file_name, line);
