@@ -7,7 +7,7 @@
 #include "engine.h"
 #include "graphics.h"
 
-static const size_t kNOfAtoms = 30000;
+static const size_t kNOfAtoms = 300000;
 
 int main(const int argc, const char** argv) {
     GLFWwindow* window = graph_SetUpRender();

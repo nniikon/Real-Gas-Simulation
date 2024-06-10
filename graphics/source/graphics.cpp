@@ -155,6 +155,10 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); $
     glBindVertexArray(0); $
+
+    // Delete vertex array and buffer for atoms
+    glDeleteBuffers(1, &VBO_atoms); $
+    glDeleteVertexArrays(1, &VAO_atoms); $
     // render atoms ------------------------------------------------------------
 
     // render box --------------------------------------------------------------
@@ -202,6 +206,10 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); $
     glBindVertexArray(0); $
+
+    // Delete vertex array and buffer for box
+    glDeleteBuffers(1, &VBO_box); $
+    glDeleteVertexArrays(1, &VAO_box); $
     // render box --------------------------------------------------------------
 }
 
