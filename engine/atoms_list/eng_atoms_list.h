@@ -21,6 +21,7 @@ struct eng_AtomList {
     int64_t*   prev;
     int64_t*   next;
     bool*      is_out_of_box;
+    bool*      is_freezed;
 
     size_t size;
     size_t axis_divisions;
@@ -36,6 +37,7 @@ eng_Error eng_AtomListConstructor(eng_AtomList* atoms, size_t size, uint16_t div
 eng_Error eng_UpdatePositions    (eng_AtomList* atoms, float delta_time);
 eng_Error eng_HandleInteractions (eng_AtomList* atoms);
 eng_Error eng_SetRandomPositions (eng_AtomList* atoms);
+eng_Error eng_SetDefaultPositions(eng_AtomList* atoms);
 void      eng_ListSetLogFile(FILE* file);
 
 #endif // ENG_ATOMS_LIST_

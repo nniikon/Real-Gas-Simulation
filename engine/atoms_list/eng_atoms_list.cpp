@@ -52,6 +52,30 @@ eng_Error eng_SetRandomPositions(eng_AtomList* atoms) {
 }
 
 
+eng_Error eng_SetDefaultPositions(eng_AtomList* atoms) {
+    assert(atoms);
+
+    const float hole_radius = 0.1000f;
+    const float angle = glm::radians(60.0f); // Convert degrees to radians
+    const float box_size = atoms->box_size;
+    const float distance_between_atoms = atoms->radius * 2.0f; // Assuming atoms are spaced by their diameter
+
+    // Calculate the default velocity vector pointing towards the hole
+    glm::vec3 kDefaultVelocity = glm::vec3(-cos(angle) / 10, sin(angle) / 10, 0.0f);
+
+    // Set positions and velocities for each atom
+    for (size_t i = 0; i < atoms->size; i++) {
+        float z_offset = i * distance_between_atoms;
+
+        // Start positions from outside the box, moving in a line towards the hole
+        atoms->positions[i] = glm::vec3(-box_size - (i * distance_between_atoms), hole_radius * sin(angle), z_offset);
+        atoms->velocities[i] = kDefaultVelocity;
+    }
+
+    return ENG_ERR_NO;
+}
+
+
 eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
                                                       const uint16_t divisions) {
     assert(list);
@@ -65,7 +89,7 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
     list->axis_divisions = divisions;
     list->space_divisions = divisions * divisions * divisions;
     list->size      = size;
-    list->mode = ENG_MODE_IDEAL;
+    list->mode = ENG_MODE_REAL;
 
     eng_Error err = ENG_ERR_NO;
 
@@ -96,7 +120,13 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
     list->is_out_of_box = (bool*) calloc(size, sizeof(bool));
     if (list->is_out_of_box == nullptr) {
         err = ENG_ERR_MEM_ALLOC;
-        goto bad_alloc_prev;
+        goto bad_alloc_out_of_box;
+    }
+
+    list->is_freezed    = (bool*) calloc(size, sizeof(bool));
+    if (list->is_freezed == nullptr) {
+        err = ENG_ERR_MEM_ALLOC;
+        goto bad_alloc_freezed;
     }
 
     list->next += list->space_divisions;
@@ -105,6 +135,9 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
     LOG_FUNC_END(gLogFile);
     return ENG_ERR_NO;
 
+    free(list->is_freezed);
+    bad_alloc_freezed:
+    free(list->is_out_of_box);
     bad_alloc_out_of_box:
     free(list->prev);
     bad_alloc_prev:
@@ -123,8 +156,12 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
 eng_Error eng_UpdatePositions(eng_AtomList* atoms, float delta_time) {
     assert(atoms);
 
+
     // TODO: SEVEROV OPTIMISATION
     for (size_t i = 0; i < atoms->size; i++) {
+        if (atoms->is_freezed[i])
+            continue;
+
         atoms->positions[i] += atoms->velocities[i] * delta_time;
     }
     
@@ -175,24 +212,34 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
     float box_size = atoms->box_size;
     float radius = atoms->radius;
 
-    bool is_colliding = false;
+    if (position->x < -15 || position->x > 15 ||
+        position->y < -15 || position->y > 15 ||
+        position->z < -15 || position->z > 15   ) {
+        atoms->is_freezed[pos] = true;
+        return false;
+    }
 
     if (atoms->is_out_of_box[pos])
         return false;
 
-    const float hole_radius_2 = 1.50f;
+    const float hole_radius = 0.1000f;
+    const float hole_radius_2 = hole_radius * hole_radius;
 
-    // Check collision with the left wall (x = -box_size)
-    // Ignore the collision if the atom is within the circular hole
+    // Check if the atom is colliding with the hole in the left wall
     if (position->x - radius <= -box_size) {
-        if (position->y * position->y + position->z * position->z <= hole_radius_2) {
+        if ((position->y * position->y + position->z * position->z) <= hole_radius_2) {
             atoms->is_out_of_box[pos] = true;
+            return false;
         }
-        else {
-            position->x = radius - box_size;
-            velocity->x = -velocity->x;
-            is_colliding = true;
-        }
+    }
+
+    bool is_colliding = false;
+
+    // Handle collisions with the walls
+    if (position->x - radius <= -box_size) {
+        position->x = radius - box_size;
+        velocity->x = -velocity->x;
+        is_colliding = true;
     } else if (position->x + radius >= box_size) {
         position->x = box_size - radius;
         velocity->x = -velocity->x;
@@ -221,6 +268,7 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
 
     return is_colliding;
 }
+
 
 
 static float PowNeg7(float num) {
@@ -297,70 +345,111 @@ eng_Error eng_HandleInteractions(eng_AtomList* atoms) {
     assert(atoms);
     LOG_FUNC_START(gLogFile);
 
-    int64_t size = (int64_t)atoms->size;
+    size_t size = atoms->size;
 
-    for (int64_t i = 0; i < size; i++) {
-        eng_HandleWallCollision(atoms, (size_t)i);
-    }
-
-    switch(atoms->mode) {
-        case ENG_MODE_REAL:     return ENG_ERR_NO; break;
-        case ENG_MODE_IDEAL:                       break;
-        default:                assert(0);         break;
-    }
-
-    eng_AdjustLists(atoms);
-
-    int64_t space_divisions = (int64_t)atoms->space_divisions;
-    int64_t  axis_divisions = (int64_t)atoms-> axis_divisions;
-
-    for (int64_t main_list = -space_divisions; main_list < 0; main_list++) {
-        for (int64_t neighbour_list = -space_divisions; neighbour_list < 0; neighbour_list++) {
-
-            int64_t main_list_num = -main_list;
-            int64_t main_x = main_list_num % axis_divisions;
-            main_x = main_x / axis_divisions;
-            int64_t main_y = main_list_num % axis_divisions;
-            main_y = main_y / axis_divisions;
-            int64_t main_z = main_list_num % axis_divisions;
-
-            int64_t neighbour_list_num = -neighbour_list;
-            int64_t neighbour_x = neighbour_list_num % axis_divisions;
-            neighbour_x = neighbour_x / axis_divisions;
-            int64_t neighbour_y = neighbour_list_num % axis_divisions;
-            neighbour_y = neighbour_y / axis_divisions;
-            int64_t neighbour_z = neighbour_list_num % axis_divisions;
-
-            if (iabs(neighbour_x - main_x) > 1 ||
-                iabs(neighbour_y - main_y) > 1 ||
-                iabs(neighbour_z - main_z) > 1)
-            {
-                continue;
-            }
-
-            if (neighbour_x - main_x == 0 &&
-                neighbour_y - main_y == 0 &&
-                neighbour_z - main_z == 0)
-            {
-                continue;
-            }
-
-            int64_t main_elem = atoms->next[main_list];
-            while (main_elem >= 0) {
-                int64_t neig_elem = atoms->next[neighbour_list];
-                while (neig_elem >= 0) {
-                    eng_HandleAtomCollision    (atoms, (size_t)main_elem, (size_t)neig_elem);
-                    eng_HandleVanDerWaalseForce(atoms, (size_t)main_elem, (size_t)neig_elem);
-                    neig_elem = atoms->next[neig_elem];
-                }
-                main_elem = atoms->next[main_elem];
-            }
-
+    // TODO: fix O(n^2)
+    for (size_t i = 0; i < size - 1; i++) {
+        for (size_t j = i + 1; j < size; j++) {
+            eng_HandleAtomCollision    (atoms, i, j);
+            eng_HandleVanDerWaalseForce(atoms, i, j);
         }
+        eng_HandleWallCollision(atoms, i);
     }
 
     return ENG_ERR_NO;
 }
+
+
+void eng_DumpVelocitiesToFile(eng_AtomList* atoms, const char* file_name) {
+    assert(atoms);
+
+    FILE* file = fopen(file_name, "w");
+    if (file == nullptr)
+        return;
+
+    for (size_t i = 0; i < atoms->size; i++) {
+        fprintf(file, "%lg\n", glm::length(atoms->velocities[i]));
+    }
+}
+
+//eng_Error eng_HandleInteractions(eng_AtomList* atoms) {
+//    assert(atoms);
+//    LOG_FUNC_START(gLogFile);
+//
+//    int64_t size = (int64_t)atoms->size;
+//
+//    for (int64_t i = 0; i < size; i++) {
+//        eng_HandleWallCollision(atoms, (size_t)i);
+//    }
+//
+//    switch(atoms->mode) {
+//        case ENG_MODE_REAL:      break;
+//        case ENG_MODE_IDEAL:                       break;
+//        default:                assert(0);         break;
+//    }
+//
+//
+//    for (size_t i = 0; i < atoms->size; i++) {
+//        for (size_t j = 0; j < atoms->size; j++) {
+//            eng_HandleAtomCollision    (atoms, i, j);
+//            eng_HandleVanDerWaalseForce(atoms, i, j);
+//        }
+//    }
+//
+//    return ENG_ERR_NO;
+//
+//    eng_AdjustLists(atoms);
+//
+//    int64_t space_divisions = (int64_t)atoms->space_divisions;
+//    int64_t  axis_divisions = (int64_t)atoms-> axis_divisions;
+//
+//    for (int64_t main_list = -space_divisions; main_list < 0; main_list++) {
+//        for (int64_t neighbour_list = -space_divisions; neighbour_list < 0; neighbour_list++) {
+//
+//            int64_t main_list_num = -main_list;
+//            int64_t main_x = main_list_num % axis_divisions;
+//            main_x = main_x / axis_divisions;
+//            int64_t main_y = main_list_num % axis_divisions;
+//            main_y = main_y / axis_divisions;
+//            int64_t main_z = main_list_num % axis_divisions;
+//
+//            int64_t neighbour_list_num = -neighbour_list;
+//            int64_t neighbour_x = neighbour_list_num % axis_divisions;
+//            neighbour_x = neighbour_x / axis_divisions;
+//            int64_t neighbour_y = neighbour_list_num % axis_divisions;
+//            neighbour_y = neighbour_y / axis_divisions;
+//            int64_t neighbour_z = neighbour_list_num % axis_divisions;
+//
+//            if (iabs(neighbour_x - main_x) > 1 ||
+//                iabs(neighbour_y - main_y) > 1 ||
+//                iabs(neighbour_z - main_z) > 1)
+//            {
+//                continue;
+//            }
+//
+//            if (neighbour_x - main_x == 0 &&
+//                neighbour_y - main_y == 0 &&
+//                neighbour_z - main_z == 0)
+//            {
+//                continue;
+//            }
+//
+//            int64_t main_elem = atoms->next[main_list];
+//            while (main_elem >= 0) {
+//                int64_t neig_elem = atoms->next[neighbour_list];
+//                while (neig_elem >= 0) {
+//                    eng_HandleAtomCollision    (atoms, (size_t)main_elem, (size_t)neig_elem);
+//                    eng_HandleVanDerWaalseForce(atoms, (size_t)main_elem, (size_t)neig_elem);
+//                    neig_elem = atoms->next[neig_elem];
+//                }
+//                main_elem = atoms->next[main_elem];
+//            }
+//
+//        }
+//    }
+//
+//    return ENG_ERR_NO;
+//}
 
 
 static void eng_DumpDivisions(eng_AtomList* atoms) {
