@@ -1,4 +1,4 @@
-CFLAGS = -O2 -march=native -g -Wall \
+CFLAGS = -O0 -march=native -g -Wall \
 -Wmissing-declarations -Wcast-align -Wcast-qual \
 -Wchar-subscripts -Wconversion \
 -Wempty-body -Wfloat-equal -Wformat-nonliteral -Wformat-security \
@@ -13,16 +13,18 @@ CFLAGS = -O2 -march=native -g -Wall \
 -fstack-protector -fstrict-overflow \
 -fno-omit-frame-pointer -flto\
 
+# CFLAGS += -fsanitize=address,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr
+
 CFLAGS += -I../../glad/include/ -I../../common/ -I../include/ -I../../glm/glm/ \
 		  -I../../engine/include -I../../glad_fork/include -I./glad_fork/include
 # fix inline warnings
 CFLAGS += --param=max-inline-insns-single=100000 --param=large-function-growth=1000
 
-CFLAGS += -D NDEBUG
+CFLAGS += -D DEBUG
 CFLAGS += -D NLOG
 CFLAGS += -D NGRAPH_DEBUG
 
-export CFLAGS
+export CFLAGS 
 
 export BUILD_DIR = ${CURDIR}/build
 export EXEC_NAME = VDV 
