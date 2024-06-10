@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <unistd.h>
 
-static const size_t kNOfAtoms = 700;
+static const size_t kNOfAtoms = 4000;
 
 int main(const int argc, const char** argv) {
     GLFWwindow* window = graph_SetUpRender();
@@ -14,7 +14,7 @@ int main(const int argc, const char** argv) {
     graph_TellAboutControls();
 
     GraphShaders shaders = graph_CompileShaders();
-    glPointSize(3.0f); //FIXME
+    glPointSize(2.0f); //FIXME
 
     FILE* log_file = logOpenFile("VOVA_LOH.html");
     if (log_file == nullptr) {

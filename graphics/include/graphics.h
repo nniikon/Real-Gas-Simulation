@@ -14,8 +14,8 @@
 #include "graphics_defs.h"
 
 struct GraphShaders {
-    GLId main_shader_id;
-    GLId box_shader_id;
+    GLId main_shader_program_id;
+    GLId box_shader_program_id;
 };
 
 // setup

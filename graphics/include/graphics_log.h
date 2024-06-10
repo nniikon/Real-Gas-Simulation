@@ -12,12 +12,12 @@
 
 // debug 
 #ifdef GRAPHICS_DEBUG_CALLS
-    #define $ GLLogError(__LINE__); fprintf(stderr, "line reached: %d\n", __LINE__);
+    #define $ GLLogError(__FILE__, __LINE__); 
 #else
     #define $ ;
 #endif // GRAPHICS_DEBUG_CALLS
 
-void GLLogError(size_t line);
+void GLLogError(const char* file_name, size_t line);
 void GLLogShaderError(GLId shader_id);
 void GLLogLinkError(GLId shader_program);
 

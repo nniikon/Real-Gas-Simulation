@@ -3,38 +3,31 @@
 #include <cstddef>
 #include <string>
 #include <vector>
+#include <iostream>
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include "fwd.hpp"
+#include "gtc/matrix_transform.hpp"
+#include "gtc/type_ptr.hpp"
+#include "gtx/string_cast.hpp"
+
 #include "gas_structs.h"
 #include "glad/glad.h"
 #include "graphics_cfg.h"
 #include "graphics_defs.h"
 #include "graphics_log.h"
 #include "graphics_shaders.h"
+#include "graphics_box.h"
 
 // static ----------------------------------------------------------------------
 
-static const glm::vec3 kBox[] = {
-    // Front face
-    {-0.9f, -0.9f,  0.9f},
-    { 0.9f, -0.9f,  0.9f},
-
-    {-0.9f, -0.9f,  0.9f},
-    {-0.9f,  0.9f,  0.9f},
-
-    { 0.9f,  0.9f,  0.9f},
-    { 0.9f, -0.9f,  0.9f},
-
-    { 0.9f,  0.9f,  0.9f},
-    {-0.9f,  0.9f,  0.9f},
-    // Right face
-};
-static const size_t kNOfVertInBox = 8;
+static glm::ivec3 angle_vec(0, 0, 0);
+static float scale_scene = 0.5f;
 
 // callbacks
 static void graph_FrameBufferSizeCallback(GLFWwindow* window, int width, int height);
 static void graph_KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-static GLId graph_CompileSingleShader(const char* vert_shader, const char* frag_shader);
+static GLId graph_CompileProgram(const char* vert_shader, const char* frag_shader);
 
 // global ----------------------------------------------------------------------
 // setup
@@ -90,16 +83,27 @@ GraphShaders graph_CompileShaders() {
     const char* box_frag_shader  = shader_arr[box_frag_ind].c_str();
     const char* box_vert_shader  = shader_arr[box_vert_ind].c_str(); 
 
-    GLId main_shader_id = graph_CompileSingleShader(main_vert_shader, main_frag_shader);
-    GLId box_shader_id = graph_CompileSingleShader(box_vert_shader, box_frag_shader);
+    GLId main_shader_program_id = graph_CompileProgram(main_vert_shader, main_frag_shader);
+    GLId box_shader_program_id = graph_CompileProgram(box_vert_shader, box_frag_shader);
 
-    return (GraphShaders){.main_shader_id = main_shader_id,
-                          .box_shader_id  = box_shader_id};
+    return (GraphShaders){.main_shader_program_id = main_shader_program_id,
+                          .box_shader_program_id  = box_shader_program_id};
 }
 
 // render
 void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
     assert(atoms != nullptr);
+
+    glm::mat4 rotate_mat_x = glm::mat4(1.0f);
+    glm::mat4 rotate_mat_y = glm::mat4(1.0f);
+    glm::mat4 rotate_mat_z = glm::mat4(1.0f);
+
+    rotate_mat_x = glm::rotate(rotate_mat_x, glm::radians((float)angle_vec.x), glm::vec3(1.0, 0.0, 0.0));
+    rotate_mat_y = glm::rotate(rotate_mat_y, glm::radians((float)angle_vec.y), glm::vec3(0.0, 1.0, 0.0));
+    rotate_mat_z = glm::rotate(rotate_mat_z, glm::radians((float)angle_vec.z), glm::vec3(0.0, 0.0, 1.0));
+
+    glm::mat4 rotate_mat = rotate_mat_x * rotate_mat_y * rotate_mat_z;
+    // rotate_mat = glm::rotate(rotate_mat, glm::radians((float)angle), glm::vec3(0.0, 1.0, 1.0));
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f); $
     glClear(GL_COLOR_BUFFER_BIT); $
@@ -123,8 +127,15 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); $
     glBindVertexArray(0); $
+
+    glUseProgram(shader_ids.main_shader_program_id); $
     
-    glUseProgram(shader_ids.main_shader_id); $
+    int main_rotate_id = glGetUniformLocation(shader_ids.main_shader_program_id, "rotate_mat"); $
+    glUniformMatrix4fv(main_rotate_id, 1, GL_FALSE, glm::value_ptr(rotate_mat)); $
+
+    int main_scale_id = glad_glGetUniformLocation(shader_ids.main_shader_program_id, "scale_scene");
+    glUniform1f(main_scale_id, scale_scene);
+
     glBindVertexArray(VAO_atoms); $
     
     glEnableVertexAttribArray(0); $
@@ -156,9 +167,16 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
     glBindBuffer(GL_ARRAY_BUFFER, 0); $
     glBindVertexArray(0); $
 
-    glUseProgram(shader_ids.box_shader_id); $
-    glBindVertexArray(VAO_box); $
+    glUseProgram(shader_ids.box_shader_program_id); $
+
+    int box_rotate_id = glGetUniformLocation(shader_ids.box_shader_program_id, "rotate_mat"); $
+    glUniformMatrix4fv(box_rotate_id, 1, GL_FALSE, glm::value_ptr(rotate_mat)); $
     
+    int box_scale_id = glad_glGetUniformLocation(shader_ids.box_shader_program_id, "scale_scene");
+    glUniform1f(box_scale_id, scale_scene);
+
+    glBindVertexArray(VAO_box); $
+        
     glEnableVertexAttribArray(0); $
     glDrawArrays(GL_LINES, 0, kNOfVertInBox); $
     glDisableVertexAttribArray(0); $
@@ -169,7 +187,7 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
 
 // static ----------------------------------------------------------------------
 
-static GLId graph_CompileSingleShader(const char* vert_shader, const char* frag_shader) {
+static GLId graph_CompileProgram(const char* vert_shader, const char* frag_shader) {
     assert(vert_shader != nullptr);
     assert(frag_shader != nullptr);
 
@@ -198,7 +216,14 @@ static GLId graph_CompileSingleShader(const char* vert_shader, const char* frag_
 }
 
 void graph_TellAboutControls() {
-    fprintf(stdout, "Quit: Q key button\n");
+    std::cout << "Quit: Q" << std::endl
+              << "Rotate +X: Z" << std::endl
+              << "Rotate +Y: X" << std::endl
+              << "Rotate +Z: C" << std::endl
+              << "Rotate -X: A" << std::endl
+              << "Rotate -Y: S" << std::endl
+              << "Rotate -Z: D" << std::endl
+              << "Dump velocities: V" << std::endl;
 }
 
 // callbacks
@@ -210,7 +235,52 @@ static void graph_FrameBufferSizeCallback(GLFWwindow* window, int width, int hei
 }
 
 static void graph_KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_Q) {
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    switch (key) {
+        case GLFW_KEY_Q:
+           glfwSetWindowShouldClose(window, GLFW_TRUE); 
+        case GLFW_KEY_Z:
+            angle_vec.x++;
+            // angle_vec.x %= 360;
+            break;
+        case GLFW_KEY_X:
+            angle_vec.y++;
+            // angle_vec.y %= 360;
+            break;
+        case GLFW_KEY_C:
+            angle_vec.z++;
+            // angle_vec.z %= 360;
+            break;
+        case GLFW_KEY_A:
+            angle_vec.x--;
+            // angle_vec.x %= 360;
+            break;
+        case GLFW_KEY_S:
+            angle_vec.y--;
+            // angle_vec.y %= 360;
+            break;
+        case GLFW_KEY_D:
+            angle_vec.z--;
+            // angle_vec.z %= 360;            
+            break;
+        case GLFW_KEY_V:
+            // dump v
+            break;
+        
+        case GLFW_KEY_EQUAL:
+            scale_scene *= 1.05f;
+            break;
+        case GLFW_KEY_MINUS:
+            scale_scene /= 1.05f;
+            break;
+        default:
+        #if defined(GRAPH_DEBUG)
+            std::cerr << "! unknown key: " << key << std::endl;
+        #endif // DEBUG
+            break;
     }
+
+#if defined (GRAPH_DEBUG)
+    std::cerr << "# angle vector: " << glm::to_string(angle_vec) << std::endl;
+    std::cerr << "# scale float: " << scale_scene << std::endl;
+#endif // GRAPH_DEBUG
 }

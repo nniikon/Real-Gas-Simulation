@@ -2,10 +2,10 @@
 
 // debug -----------------------------------------------------------------------
 __attribute__((unused))
-void GLLogError(size_t line) {
+void GLLogError(const char* file_name, size_t line) {
     GLenum error;
     while ((error = glGetError()) != GL_NO_ERROR) {
-        fprintf(stderr, "! Opengl error: %u, on line: %lu\n", error, line);
+        fprintf(stderr, "! Opengl error: %u, %s:%lu\n", error, file_name, line);
     }
 }
 

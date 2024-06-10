@@ -2,6 +2,9 @@
 
 layout (location = 0) in vec3 aPos;
 
+uniform float scale_scene;
+uniform mat4 rotate_mat;
+
 void main() {
-    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+    gl_Position = rotate_mat * vec4(scale_scene * aPos.x, scale_scene * aPos.y, scale_scene * aPos.z, 1.0);
 }
