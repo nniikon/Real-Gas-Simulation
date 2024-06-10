@@ -18,5 +18,7 @@ UNUSED static const int    graph_kWindowWidth  = 1024;
 UNUSED static const int    graph_kWindowHeight = 1024;
 UNUSED static const char*  graph_kWindowTitle  = "gas experiment";
 UNUSED static const float  kPointSize          = 2.0f;
+UNUSED static const float  kLineWidth          = 2.5f;
+UNUSED static const size_t kNLinesInCircle     = 32;
 
 #endif // GRAPHICS_CFG_H_

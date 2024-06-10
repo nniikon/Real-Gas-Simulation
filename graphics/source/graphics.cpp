@@ -20,6 +20,8 @@
 #include "graphics_shaders.h"
 #include "graphics_box.h"
 
+#include "../../libs/debug/debug.h"
+
 // static ----------------------------------------------------------------------
 
 static glm::ivec3 angle_vec(0, 0, 0);
@@ -28,8 +30,9 @@ static float scale_scene = 0.5f;
 // callbacks
 static void graph_FrameBufferSizeCallback(GLFWwindow* window, int width, int height);
 static void graph_KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-static glm::mat4 GetRotationMatrix();
+static glm::mat4 graph_GetRotationMatrix();
 static GLId graph_CompileProgram(const char* vert_shader, const char* frag_shader);
+static void graph_CreateCircle(std::vector<glm::vec3>* box);
 
 // global ----------------------------------------------------------------------
 // setup
@@ -60,6 +63,9 @@ GLFWwindow* graph_SetUpRender() {
 
     glfwSetFramebufferSizeCallback(window, graph_FrameBufferSizeCallback);
     glfwSetKeyCallback(window, graph_KeyboardCallback);
+
+    glPointSize(kPointSize); $
+    glLineWidth(kLineWidth); $
 
     return window;
 }
@@ -107,11 +113,12 @@ GraphShaders graph_CompileShaders() {
 void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
     assert(atoms != nullptr);
 
-    glm::mat4 rotate_mat = GetRotationMatrix();
+    glm::mat4 rotate_mat = graph_GetRotationMatrix();
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f); $
-    glClear(GL_COLOR_BUFFER_BIT); $
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); $
 
+    // render atoms ------------------------------------------------------------
     GLId VAO_atoms;
     GLId VBO_atoms;
     
@@ -148,8 +155,14 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); $
     glBindVertexArray(0); $
+    // render atoms ------------------------------------------------------------
 
-    // -------------------------------------------------------------------------
+    // render box --------------------------------------------------------------
+    std::vector<glm::vec3> box_vec;
+    for (size_t i = 0; i < kNOfVertInBox; i++) {
+        box_vec.push_back(kBox[i]); 
+    }
+    graph_CreateCircle(&box_vec);
 
     GLId VAO_box;
     GLId VBO_box;
@@ -160,10 +173,12 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
     glBindVertexArray(VAO_box); $
     
     glBindBuffer(GL_ARRAY_BUFFER, VBO_box); $ // vbo now is associated with array buffer
+
     glBufferData(GL_ARRAY_BUFFER, 
-                 sizeof(kBox), 
-                 kBox, 
-                 GL_STATIC_DRAW); $ // gl copy to buffer
+                //  sizeof(kBox),
+                 box_vec.size() * sizeof(glm::vec3), 
+                 box_vec.data(), 
+                 GL_DYNAMIC_DRAW); $ // gl copy to buffer
 
     // why 0?
     glVertexAttribPointer(0, kNDimensions, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0); $
@@ -182,11 +197,12 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
     glBindVertexArray(VAO_box); $
         
     glEnableVertexAttribArray(0); $
-    glDrawArrays(GL_LINES, 0, kNOfVertInBox); $
+    glDrawArrays(GL_LINES, 0, box_vec.size()); $
     glDisableVertexAttribArray(0); $
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); $
     glBindVertexArray(0); $
+    // render box --------------------------------------------------------------
 }
 
 // static ----------------------------------------------------------------------
@@ -219,7 +235,7 @@ static GLId graph_CompileProgram(const char* vert_shader, const char* frag_shade
     return shader_prog_id;
 }
 
-static glm::mat4 GetRotationMatrix() {
+static glm::mat4 graph_GetRotationMatrix() {
     glm::mat4 rotate_mat_x = glm::mat4(1.0f);
     glm::mat4 rotate_mat_y = glm::mat4(1.0f);
     glm::mat4 rotate_mat_z = glm::mat4(1.0f);
@@ -231,6 +247,22 @@ static glm::mat4 GetRotationMatrix() {
     glm::mat4 rotate_mat = rotate_mat_x * rotate_mat_y * rotate_mat_z;
     return rotate_mat;
 } 
+
+static void graph_CreateCircle(std::vector<glm::vec3>* box) {
+    assert(box != nullptr);
+
+    float angle_step = 2.0f * M_PI / kNLinesInCircle;
+    float radius = 0.1f;
+
+    box->push_back(glm::vec3(-kScale, 0.0f, 1.0f * radius));
+    for (size_t i = 1; i < kNLinesInCircle; i++) {
+        glm::vec3 new_point(-kScale, sin(angle_step * (float)i) * radius, cos(angle_step * (float)i) * radius);
+
+        box->push_back(new_point);
+        box->push_back(new_point);
+    }
+    box->push_back(glm::vec3(-kScale, 0.0f, 1.0f * radius));
+}
 
 // callbacks
 

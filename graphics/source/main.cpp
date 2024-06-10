@@ -7,7 +7,7 @@
 #include "engine.h"
 #include "graphics.h"
 
-static const size_t kNOfAtoms = 10000;
+static const size_t kNOfAtoms = 30000;
 
 int main(const int argc, const char** argv) {
     GLFWwindow* window = graph_SetUpRender();
@@ -19,7 +19,6 @@ int main(const int argc, const char** argv) {
     graph_TellAboutControls();
 
     GraphShaders shaders = graph_CompileShaders();
-    glPointSize(kPointSize);
 
     FILE* log_file = logOpenFile("engine_dump.html");
     if (log_file == nullptr) {
