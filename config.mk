@@ -15,6 +15,8 @@ CFLAGS = -O2 -march=native -g -Wall \
 
 CFLAGS += -I../../glad/include/ -I../../common/ -I../include/ -I../../glm/glm/ \
 		  -I../../engine/include -I../../glad_fork/include -I./glad_fork/include
+# fix inline warnings
+CFLAGS += --param=max-inline-insns-single=100000 --param=large-function-growth=1000
 
 CFLAGS += -D NDEBUG
 CFLAGS += -D NLOG
