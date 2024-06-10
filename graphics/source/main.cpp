@@ -11,7 +11,9 @@ int main(const int argc, const char** argv) {
     GLFWwindow* window = graph_SetUpRender();
     if (window == nullptr) { return -1; }
 
-    GLId shader_prog_id = graph_CompileShaders();
+    graph_TellAboutControls();
+
+    GraphShaders shaders = graph_CompileShaders();
     glPointSize(3.0f); //FIXME
 
     FILE* log_file = logOpenFile("VOVA_LOH.html");
@@ -27,13 +29,13 @@ int main(const int argc, const char** argv) {
     eng_AtomList atom_list = {};
 
     eng_error = eng_Ctor(&atom, &atom_list, kNOfAtoms);
-    if (eng_error != ENG_ERR_NO) { fprintf(stderr, "fuck! [ %d ]\n", __LINE__); return 1; }
+    if (eng_error != ENG_ERR_NO) { fprintf(stderr, "engine ctor error! [ %d ]\n", __LINE__); return 1; }
 
     while (!glfwWindowShouldClose(window)) {
         eng_error = eng_Compute(&atom_list, 0.01f);
-        if (eng_error != ENG_ERR_NO) { fprintf(stderr, "fuck! [ %d ]\n", __LINE__); return 1; }        
+        if (eng_error != ENG_ERR_NO) { fprintf(stderr, "engine compute error! [ %d ]\n", __LINE__); return 1; }        
 
-        Render(&atom, shader_prog_id);
+        Render(&atom, shaders);
         
         glfwSwapBuffers(window);
         glfwPollEvents();

@@ -1,4 +1,4 @@
-CFLAGS = -O0 -g -Wall \
+CFLAGS = -O2 -march=native -g -Wall \
 -Wmissing-declarations -Wcast-align -Wcast-qual \
 -Wchar-subscripts -Wconversion \
 -Wempty-body -Wfloat-equal -Wformat-nonliteral -Wformat-security \
@@ -11,13 +11,14 @@ CFLAGS = -O0 -g -Wall \
 -Wno-missing-field-initializers -Wno-narrowing \
 -Wno-varargs -Wstack-protector -fcheck-new \
 -fstack-protector -fstrict-overflow \
--fno-omit-frame-pointer \
+-fno-omit-frame-pointer -flto\
 
 CFLAGS += -I../../glad/include/ -I../../common/ -I../include/ -I../../glm/glm/ \
 		  -I../../engine/include -I../../glad_fork/include -I./glad_fork/include
 
 CFLAGS += -D NDEBUG
 CFLAGS += -D NLOG
+CFLAGS += -D NGRAPH_DEBUG
 
 export CFLAGS
 

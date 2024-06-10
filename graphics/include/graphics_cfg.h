@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#if defined (DEBUG)
+#if defined (GRAPH_DEBUG)
     #define GRAPHICS_DEBUG_SHADER
     #define GRAPHICS_DEBUG_CALLS
 #endif // DEBUG

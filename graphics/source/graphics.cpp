@@ -1,4 +1,9 @@
 #include "graphics.h"
+
+#include <cstddef>
+#include <string>
+#include <vector>
+
 #include "fwd.hpp"
 #include "gas_structs.h"
 #include "glad/glad.h"
@@ -6,7 +11,6 @@
 #include "graphics_defs.h"
 #include "graphics_log.h"
 #include "graphics_shaders.h"
-#include <cstddef>
 
 // static ----------------------------------------------------------------------
 
@@ -30,6 +34,7 @@ static const size_t kNOfVertInBox = 8;
 // callbacks
 static void graph_FrameBufferSizeCallback(GLFWwindow* window, int width, int height);
 static void graph_KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+static GLId graph_CompileSingleShader(const char* vert_shader, const char* frag_shader);
 
 // global ----------------------------------------------------------------------
 // setup
@@ -64,33 +69,36 @@ GLFWwindow* graph_SetUpRender() {
     return window;
 }
 
-GLId graph_CompileShaders() {
-    GLId vertex_shader_id = glCreateShader(GL_VERTEX_SHADER); $
-    glShaderSource(vertex_shader_id, 1, &vertex_shader, NULL); $
-    glCompileShader(vertex_shader_id); $
-    GLLogShaderError(vertex_shader_id); $
+GraphShaders graph_CompileShaders() {
+    // load shaders
+    std::vector<std::string> file_names_arr;
+    file_names_arr.push_back(std::string("./graphics/shaders/main_frag_sh.frag"));
+    file_names_arr.push_back(std::string("./graphics/shaders/main_vert_sh.vert"));
 
-    GLId fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER); $
-    // 1 is the number of strings of source code, 
-    // NULL means that strings are null terminated
-    glShaderSource(fragment_shader_id, 1, &fragment_shader, NULL); $
-    glCompileShader(fragment_shader_id); $
-    GLLogShaderError(fragment_shader_id); $
+    file_names_arr.push_back(std::string("./graphics/shaders/box_frag_sh.frag"));
+    file_names_arr.push_back(std::string("./graphics/shaders/box_vert_sh.vert"));
 
-    GLId shader_prog_id = glCreateProgram(); $ 
-    glAttachShader(shader_prog_id, vertex_shader_id); $
-    glAttachShader(shader_prog_id, fragment_shader_id); $
-    glLinkProgram(shader_prog_id); $
-    GLLogLinkError(shader_prog_id); $   
+    std::vector<std::string> shader_arr = graph_LoadShaders(file_names_arr);
+    
+    int64_t main_frag_ind = 0;
+    int64_t main_vert_ind = 1;
+    int64_t box_frag_ind  = 2;
+    int64_t box_vert_ind  = 3;
 
-    glDeleteShader(vertex_shader_id); $
-    glDeleteShader(fragment_shader_id); $
+    const char* main_frag_shader = shader_arr[main_frag_ind].c_str();
+    const char* main_vert_shader = shader_arr[main_vert_ind].c_str();
+    const char* box_frag_shader  = shader_arr[box_frag_ind].c_str();
+    const char* box_vert_shader  = shader_arr[box_vert_ind].c_str(); 
 
-    return shader_prog_id;
+    GLId main_shader_id = graph_CompileSingleShader(main_vert_shader, main_frag_shader);
+    GLId box_shader_id = graph_CompileSingleShader(box_vert_shader, box_frag_shader);
+
+    return (GraphShaders){.main_shader_id = main_shader_id,
+                          .box_shader_id  = box_shader_id};
 }
 
 // render
-void Render(gas_Atoms* atoms, GLId shader_prog_id) {
+void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
     assert(atoms != nullptr);
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f); $
@@ -116,7 +124,7 @@ void Render(gas_Atoms* atoms, GLId shader_prog_id) {
     glBindBuffer(GL_ARRAY_BUFFER, 0); $
     glBindVertexArray(0); $
     
-    glUseProgram(shader_prog_id); $
+    glUseProgram(shader_ids.main_shader_id); $
     glBindVertexArray(VAO_atoms); $
     
     glEnableVertexAttribArray(0); $
@@ -148,7 +156,7 @@ void Render(gas_Atoms* atoms, GLId shader_prog_id) {
     glBindBuffer(GL_ARRAY_BUFFER, 0); $
     glBindVertexArray(0); $
 
-    glUseProgram(shader_prog_id); $
+    glUseProgram(shader_ids.box_shader_id); $
     glBindVertexArray(VAO_box); $
     
     glEnableVertexAttribArray(0); $
@@ -160,6 +168,39 @@ void Render(gas_Atoms* atoms, GLId shader_prog_id) {
 }
 
 // static ----------------------------------------------------------------------
+
+static GLId graph_CompileSingleShader(const char* vert_shader, const char* frag_shader) {
+    assert(vert_shader != nullptr);
+    assert(frag_shader != nullptr);
+
+    GLId vertex_shader_id = glCreateShader(GL_VERTEX_SHADER); $
+    glShaderSource(vertex_shader_id, 1, &vert_shader, NULL); $
+    glCompileShader(vertex_shader_id); $
+    GLLogShaderError(vertex_shader_id); $
+
+    GLId fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER); $
+    // 1 is the number of strings of source code, 
+    // NULL means that strings are null terminated
+    glShaderSource(fragment_shader_id, 1, &frag_shader, NULL); $
+    glCompileShader(fragment_shader_id); $
+    GLLogShaderError(fragment_shader_id); $
+
+    GLId shader_prog_id = glCreateProgram(); $ 
+    glAttachShader(shader_prog_id, vertex_shader_id); $
+    glAttachShader(shader_prog_id, fragment_shader_id); $
+    glLinkProgram(shader_prog_id); $
+    GLLogLinkError(shader_prog_id); $   
+
+    glDeleteShader(vertex_shader_id); $
+    glDeleteShader(fragment_shader_id); $
+
+    return shader_prog_id;
+}
+
+void graph_TellAboutControls() {
+    fprintf(stdout, "Quit: Q key button\n");
+}
+
 // callbacks
 
 static void graph_FrameBufferSizeCallback(GLFWwindow* window, int width, int height) {

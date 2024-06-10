@@ -9,14 +9,23 @@
 #include <GLFW/glfw3.h>
 
 #include "gas_structs.h"
+
 #include "graphics_cfg.h"
 #include "graphics_defs.h"
 
+struct GraphShaders {
+    GLId main_shader_id;
+    GLId box_shader_id;
+};
+
 // setup
 GLFWwindow* graph_SetUpRender();
+// control dump
+void graph_TellAboutControls();
 // returns shader program handle
-GLId graph_CompileShaders();
+GraphShaders graph_CompileShaders();
 
-void Render(gas_Atoms* atoms, GLId shader_prog_id);
+void Render(gas_Atoms* atoms, const GraphShaders& shader_ids);
+
 
 #endif // GRAPHICS_H_
