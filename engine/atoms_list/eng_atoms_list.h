@@ -10,11 +10,17 @@ enum eng_Error {
     #undef  DEF_ERR
 };
 
+enum eng_Mode {
+    ENG_MODE_REAL,
+    ENG_MODE_IDEAL,
+};
+
 struct eng_AtomList {
     glm::vec3* positions;
     glm::vec3* velocities;
     int64_t*   prev;
     int64_t*   next;
+    bool*      is_out_of_box;
 
     size_t size;
     size_t axis_divisions;
@@ -22,6 +28,8 @@ struct eng_AtomList {
     float  radius;
 
     float  box_size;
+
+    eng_Mode mode;
 };
 
 eng_Error eng_AtomListConstructor(eng_AtomList* atoms, size_t size, uint16_t divisions);

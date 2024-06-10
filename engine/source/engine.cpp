@@ -31,7 +31,7 @@ eng_Error eng_Ctor(gas_Atoms* atoms, eng_AtomList* list, const size_t n_atoms) {
 
     // TODO: cringe
     // TODO: error check
-    eng_AtomListConstructor(list, n_atoms, 10);
+    eng_AtomListConstructor(list, n_atoms, 1);
     eng_SetRandomPositions (list);
 
     atoms->coords = list->positions;
@@ -39,6 +39,11 @@ eng_Error eng_Ctor(gas_Atoms* atoms, eng_AtomList* list, const size_t n_atoms) {
 
     LOG_FUNC_END(gLogFile); 
     return ENG_ERR_NO;
+}
+
+
+void eng_SetMode(eng_AtomList* list, eng_Mode mode) {
+    list->mode = mode;
 }
 
 

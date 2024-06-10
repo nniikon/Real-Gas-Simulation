@@ -6,7 +6,6 @@
 #include <immintrin.h>
 #include "../../libs/logs/logs.h"
 
-
 static FILE* gLogFile = nullptr;
 
 static float     GetRandomCoordinate();
@@ -62,10 +61,11 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
 
     // TODO: fixme
     list->radius = 0.00001f;
-    list->box_size = 0.9f;
+    list->box_size = 0.89f;
     list->axis_divisions = divisions;
     list->space_divisions = divisions * divisions * divisions;
     list->size      = size;
+    list->mode = ENG_MODE_IDEAL;
 
     eng_Error err = ENG_ERR_NO;
 
@@ -93,12 +93,20 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
         goto bad_alloc_prev;
     }
 
+    list->is_out_of_box = (bool*) calloc(size, sizeof(bool));
+    if (list->is_out_of_box == nullptr) {
+        err = ENG_ERR_MEM_ALLOC;
+        goto bad_alloc_prev;
+    }
+
     list->next += list->space_divisions;
     list->prev += list->space_divisions;
 
     LOG_FUNC_END(gLogFile);
     return ENG_ERR_NO;
 
+    bad_alloc_out_of_box:
+    free(list->prev);
     bad_alloc_prev:
     free(list->next);
     bad_alloc_next:
@@ -162,45 +170,52 @@ static bool eng_HandleAtomCollision(eng_AtomList* atoms, size_t i, size_t j) {
 
 
 static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
-    glm::vec3& position = atoms->positions[pos];
-    glm::vec3& velocity = atoms->velocities[pos];
+    glm::vec3* position = &atoms->positions[pos];
+    glm::vec3* velocity = &atoms->velocities[pos];
     float box_size = atoms->box_size;
     float radius = atoms->radius;
 
     bool is_colliding = false;
 
-    // TODO: fix copypaste
-    // Check collision with each wall and handle the bounce
-    if (position.x - radius <= -box_size) {
-        position.x = radius - box_size;
-        velocity.x = -velocity.x;
-        is_colliding = true;
-    }
-    else if (position.x + radius >= box_size) {
-        position.x = box_size - radius;
-        velocity.x = -velocity.x;
+    if (atoms->is_out_of_box[pos])
+        return false;
+
+    const float hole_radius_2 = 1.50f;
+
+    // Check collision with the left wall (x = -box_size)
+    // Ignore the collision if the atom is within the circular hole
+    if (position->x - radius <= -box_size) {
+        if (position->y * position->y + position->z * position->z <= hole_radius_2) {
+            atoms->is_out_of_box[pos] = true;
+        }
+        else {
+            position->x = radius - box_size;
+            velocity->x = -velocity->x;
+            is_colliding = true;
+        }
+    } else if (position->x + radius >= box_size) {
+        position->x = box_size - radius;
+        velocity->x = -velocity->x;
         is_colliding = true;
     }
 
-    if (position.y - radius <= -box_size) {
-        position.y = radius - box_size;
-        velocity.y = -velocity.y;
+    if (position->y - radius <= -box_size) {
+        position->y = radius - box_size;
+        velocity->y = -velocity->y;
         is_colliding = true;
-    }
-    else if (position.y + radius >= box_size) {
-        position.y = box_size - radius;
-        velocity.y = -velocity.y;
+    } else if (position->y + radius >= box_size) {
+        position->y = box_size - radius;
+        velocity->y = -velocity->y;
         is_colliding = true;
     }
 
-    if (position.z - radius <= -box_size) {
-        position.z = radius - box_size;
-        velocity.z = -velocity.z;
+    if (position->z - radius <= -box_size) {
+        position->z = radius - box_size;
+        velocity->z = -velocity->z;
         is_colliding = true;
-    }
-    else if (position.z + radius >= box_size) {
-        position.z = box_size - radius;
-        velocity.z = -velocity.z;
+    } else if (position->z + radius >= box_size) {
+        position->z = box_size - radius;
+        velocity->z = -velocity->z;
         is_colliding = true;
     }
 
@@ -238,14 +253,12 @@ static void eng_HandleVanDerWaalseForce(eng_AtomList* atoms, size_t i, size_t j)
     glm::vec3 delta_pos = *pos2 - *pos1;
     float distance = glm::length(delta_pos);
 
-    // Calculate the force magnitude using the Lennard-Jones potential
+    // Lennard-Jones potential
     float r = distance / sigma;
     float force = 24.0f * epsilon * (2.0f * PowNeg13(r) - PowNeg7(r));
 
-    // Calculate the force vector
     glm::vec3 force_vec= force * glm::normalize(delta_pos);
 
-    // Apply the force to the velocities
     *vel1 += force_vec;
     *vel2 -= force_vec;
 
@@ -288,6 +301,12 @@ eng_Error eng_HandleInteractions(eng_AtomList* atoms) {
 
     for (int64_t i = 0; i < size; i++) {
         eng_HandleWallCollision(atoms, (size_t)i);
+    }
+
+    switch(atoms->mode) {
+        case ENG_MODE_REAL:     return ENG_ERR_NO; break;
+        case ENG_MODE_IDEAL:                       break;
+        default:                assert(0);         break;
     }
 
     eng_AdjustLists(atoms);
