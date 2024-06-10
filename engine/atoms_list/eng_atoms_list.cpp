@@ -56,18 +56,15 @@ eng_Error eng_SetDefaultPositions(eng_AtomList* atoms) {
     assert(atoms);
 
     const float hole_radius = 0.1000f;
-    const float angle = glm::radians(60.0f); // Convert degrees to radians
+    const float angle = glm::radians(60.0f);
     const float box_size = atoms->box_size;
-    const float distance_between_atoms = atoms->radius * 2.0f; // Assuming atoms are spaced by their diameter
+    const float distance_between_atoms = atoms->radius * 2.0f;
 
-    // Calculate the default velocity vector pointing towards the hole
     glm::vec3 kDefaultVelocity = glm::vec3(-cos(angle) / 10, sin(angle) / 10, 0.0f);
 
-    // Set positions and velocities for each atom
     for (size_t i = 0; i < atoms->size; i++) {
         float z_offset = i * distance_between_atoms;
 
-        // Start positions from outside the box, moving in a line towards the hole
         atoms->positions[i] = glm::vec3(-box_size - (i * distance_between_atoms), hole_radius * sin(angle), z_offset);
         atoms->velocities[i] = kDefaultVelocity;
     }
@@ -84,12 +81,12 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
     LOG_FUNC_START(gLogFile);
 
     // TODO: fixme
-    list->radius = 0.00001f;
+    list->radius = 0.0050f;
     list->box_size = 0.89f;
     list->axis_divisions = divisions;
     list->space_divisions = divisions * divisions * divisions;
     list->size      = size;
-    list->mode = ENG_MODE_REAL;
+    list->mode = ENG_MODE_IDEAL;
 
     eng_Error err = ENG_ERR_NO;
 
@@ -212,26 +209,26 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
     float box_size = atoms->box_size;
     float radius = atoms->radius;
 
-    if (position->x < -15 || position->x > 15 ||
-        position->y < -15 || position->y > 15 ||
-        position->z < -15 || position->z > 15   ) {
+    if (position->x < -1.5 || position->x > 1.5 ||
+        position->y < -1.5 || position->y > 1.5 ||
+        position->z < -1.5 || position->z > 1.5   ) {
         atoms->is_freezed[pos] = true;
         return false;
     }
 
-    if (atoms->is_out_of_box[pos])
+    if (atoms->is_out_of_box[pos] || atoms->is_freezed[pos])
         return false;
 
-    const float hole_radius = 0.1000f;
+    const float hole_radius = 0.0100f;
     const float hole_radius_2 = hole_radius * hole_radius;
 
     // Check if the atom is colliding with the hole in the left wall
-    if (position->x - radius <= -box_size) {
-        if ((position->y * position->y + position->z * position->z) <= hole_radius_2) {
-            atoms->is_out_of_box[pos] = true;
-            return false;
-        }
-    }
+    //if (position->x - radius <= -box_size) {
+    //    if ((position->y * position->y + position->z * position->z) <= hole_radius_2) {
+    //        atoms->is_out_of_box[pos] = true;
+    //        return false;
+    //    }
+    //}
 
     bool is_colliding = false;
 
@@ -347,11 +344,14 @@ eng_Error eng_HandleInteractions(eng_AtomList* atoms) {
 
     size_t size = atoms->size;
 
+
     // TODO: fix O(n^2)
     for (size_t i = 0; i < size - 1; i++) {
-        for (size_t j = i + 1; j < size; j++) {
-            eng_HandleAtomCollision    (atoms, i, j);
-            eng_HandleVanDerWaalseForce(atoms, i, j);
+        if (atoms->mode == ENG_MODE_REAL) {
+            for (size_t j = i + 1; j < size; j++) {
+                eng_HandleAtomCollision    (atoms, i, j);
+                eng_HandleVanDerWaalseForce(atoms, i, j);
+            }
         }
         eng_HandleWallCollision(atoms, i);
     }
