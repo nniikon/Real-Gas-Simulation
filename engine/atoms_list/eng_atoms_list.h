@@ -31,6 +31,7 @@ struct eng_AtomList {
     float  box_size;
 
     eng_Mode mode;
+    int n_hole_hits;
 };
 
 eng_Error eng_AtomListConstructor(eng_AtomList* atoms, size_t size, uint16_t divisions);
@@ -38,6 +39,7 @@ eng_Error eng_UpdatePositions    (eng_AtomList* atoms, float delta_time);
 eng_Error eng_HandleInteractions (eng_AtomList* atoms);
 eng_Error eng_SetRandomPositions (eng_AtomList* atoms);
 eng_Error eng_SetDefaultPositions(eng_AtomList* atoms);
+float     eng_GetAvgSpeed        (eng_AtomList* atoms);
 void      eng_ListSetLogFile(FILE* file);
 
 #endif // ENG_ATOMS_LIST_

@@ -40,12 +40,36 @@ static glm::vec3 GetRandomVector(float (*func)()) {
 }
 
 
+static glm::vec3 GetRandomVelocityVector() {
+    const float magnitude = 0.8f;
+
+    float theta = (float)(rand()) / static_cast<float>(RAND_MAX) * 2.0f * M_PI;
+    float phi =   (float)(rand()) / static_cast<float>(RAND_MAX) * M_PI;
+
+    float x = magnitude * sin(phi) * cos(theta);
+    float y = magnitude * sin(phi) * sin(theta);
+    float z = magnitude * cos(phi);
+
+    return glm::vec3(x, y, z);
+}
+
+
+float eng_GetAvgSpeed(eng_AtomList* atoms) {
+    float avg_speed = 0.0f;
+    for (size_t i = 0; i < atoms->size; i++) {
+        avg_speed += glm::length(atoms->velocities[i]);
+    }
+    avg_speed /= (float)(atoms->size);
+    return avg_speed;
+}
+
+
 eng_Error eng_SetRandomPositions(eng_AtomList* atoms) {
     assert(atoms);
 
     for (size_t i = 0; i < atoms->size; i++) {
-        atoms->positions [i] = GetRandomVector(GetRandomCoordinate);
-        atoms->velocities[i] = GetRandomVector(GetRandomVelocity);
+        atoms->positions [i] = GetRandomVector        (GetRandomCoordinate);
+        atoms->velocities[i] = GetRandomVelocityVector();
     }
 
     return ENG_ERR_NO;
@@ -81,7 +105,7 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
     LOG_FUNC_START(gLogFile);
 
     // TODO: fixme
-    list->radius = 0.0050f;
+    list->radius = 0.00005f;
     list->box_size = 0.89f;
     list->axis_divisions = divisions;
     list->space_divisions = divisions * divisions * divisions;
@@ -219,7 +243,7 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
     if (atoms->is_out_of_box[pos] || atoms->is_freezed[pos])
         return false;
 
-    const float hole_radius = 0.0100f;
+    const float hole_radius = 0.105f;
     const float hole_radius_2 = hole_radius * hole_radius;
 
     // Check if the atom is colliding with the hole in the left wall
@@ -229,6 +253,12 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
     //        return false;
     //    }
     //}
+
+    if (position->x - radius <= -box_size) {
+        if ((position->y * position->y + position->z * position->z) <= hole_radius_2) {
+            atoms->n_hole_hits++;
+        }
+    }
 
     bool is_colliding = false;
 
