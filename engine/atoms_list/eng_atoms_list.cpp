@@ -40,17 +40,40 @@ static glm::vec3 GetRandomVector(float (*func)()) {
 }
 
 
+// Function to generate normally distributed random numbers using Box-Muller transform
+static float generateNormalRandom(float mean, float stdDev) {
+    static bool hasSpare = false;
+    static double spare;
+
+    if (hasSpare) {
+        hasSpare = false;
+        return mean + stdDev * spare;
+    }
+
+    hasSpare = true;
+    static const double twoPi = 2.0 * M_PI;
+    double u1 = 0.0;
+    double u2 = 0.0;
+    do {
+        u1 = (double)rand() / RAND_MAX;
+        u2 = (double)rand() / RAND_MAX;
+    } while (u1 <= std::numeric_limits<double>::min());
+
+    double sqrtMinus2LogU1 = sqrt(-2.0 * log(u1));
+    spare = sqrtMinus2LogU1 * sin(twoPi * u2);
+    return mean + stdDev * (sqrtMinus2LogU1 * cos(twoPi * u2));
+}
+
+
 static glm::vec3 GetRandomVelocityVector() {
-    const float magnitude = 0.8f;
+    const float mean = 0.0f;
+    const float stdDev = 1.0f;
 
-    float theta = (float)(rand()) / static_cast<float>(RAND_MAX) * 2.0f * M_PI;
-    float phi =   (float)(rand()) / static_cast<float>(RAND_MAX) * M_PI;
+    float x = generateNormalRandom(mean, stdDev);
+    float y = generateNormalRandom(mean, stdDev);
+    float z = generateNormalRandom(mean, stdDev);
 
-    float x = magnitude * sin(phi) * cos(theta);
-    float y = magnitude * sin(phi) * sin(theta);
-    float z = magnitude * cos(phi);
-
-    return glm::vec3(x, y, z);
+    return {x, y, z};
 }
 
 
@@ -233,13 +256,6 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
     float box_size = atoms->box_size;
     float radius = atoms->radius;
 
-    if (position->x < -1.5 || position->x > 1.5 ||
-        position->y < -1.5 || position->y > 1.5 ||
-        position->z < -1.5 || position->z > 1.5   ) {
-        atoms->is_freezed[pos] = true;
-        return false;
-    }
-
     if (atoms->is_out_of_box[pos] || atoms->is_freezed[pos])
         return false;
 
@@ -247,16 +263,12 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
     const float hole_radius_2 = hole_radius * hole_radius;
 
     // Check if the atom is colliding with the hole in the left wall
-    //if (position->x - radius <= -box_size) {
-    //    if ((position->y * position->y + position->z * position->z) <= hole_radius_2) {
-    //        atoms->is_out_of_box[pos] = true;
-    //        return false;
-    //    }
-    //}
-
     if (position->x - radius <= -box_size) {
         if ((position->y * position->y + position->z * position->z) <= hole_radius_2) {
+            atoms->is_out_of_box[pos] = true;
+            atoms->total_hole_energy += atoms->velocities[pos] * atoms->velocities[pos];
             atoms->n_hole_hits++;
+            return false;
         }
     }
 

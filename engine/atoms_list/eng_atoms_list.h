@@ -32,6 +32,7 @@ struct eng_AtomList {
 
     eng_Mode mode;
     int n_hole_hits;
+    glm::vec3 total_hole_energy;
 };
 
 eng_Error eng_AtomListConstructor(eng_AtomList* atoms, size_t size, uint16_t divisions);
