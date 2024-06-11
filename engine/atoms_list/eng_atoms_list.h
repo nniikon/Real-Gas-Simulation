@@ -32,7 +32,7 @@ struct eng_AtomList {
 
     eng_Mode mode;
     int n_hole_hits;
-    glm::vec3 total_hole_energy;
+    float total_hole_energy;
 };
 
 eng_Error eng_AtomListConstructor(eng_AtomList* atoms, size_t size, uint16_t divisions);
@@ -41,6 +41,7 @@ eng_Error eng_HandleInteractions (eng_AtomList* atoms);
 eng_Error eng_SetRandomPositions (eng_AtomList* atoms);
 eng_Error eng_SetDefaultPositions(eng_AtomList* atoms);
 float     eng_GetAvgSpeed        (eng_AtomList* atoms);
+float     eng_GetAvgSpeed2       (eng_AtomList* atoms);
 void      eng_ListSetLogFile(FILE* file);
 
 #endif // ENG_ATOMS_LIST_

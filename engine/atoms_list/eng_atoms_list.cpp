@@ -87,33 +87,25 @@ float eng_GetAvgSpeed(eng_AtomList* atoms) {
 }
 
 
+// FIXME copypaste
+float eng_GetAvgSpeed2(eng_AtomList* atoms) {
+    float avg_speed = 0.0f;
+    float len = 0.0f;
+    for (size_t i = 0; i < atoms->size; i++) {
+        len = glm::length(atoms->velocities[i]);
+        avg_speed += len * len;
+    }
+    avg_speed /= (float)(atoms->size);
+    return avg_speed;
+}
+
+
 eng_Error eng_SetRandomPositions(eng_AtomList* atoms) {
     assert(atoms);
 
     for (size_t i = 0; i < atoms->size; i++) {
-        atoms->positions [i] = GetRandomVector        (GetRandomCoordinate);
+        atoms->positions [i] = GetRandomVector(GetRandomCoordinate);
         atoms->velocities[i] = GetRandomVelocityVector();
-    }
-
-    return ENG_ERR_NO;
-}
-
-
-eng_Error eng_SetDefaultPositions(eng_AtomList* atoms) {
-    assert(atoms);
-
-    const float hole_radius = 0.1000f;
-    const float angle = glm::radians(60.0f);
-    const float box_size = atoms->box_size;
-    const float distance_between_atoms = atoms->radius * 2.0f;
-
-    glm::vec3 kDefaultVelocity = glm::vec3(-cos(angle) / 10, sin(angle) / 10, 0.0f);
-
-    for (size_t i = 0; i < atoms->size; i++) {
-        float z_offset = i * distance_between_atoms;
-
-        atoms->positions[i] = glm::vec3(-box_size - (i * distance_between_atoms), hole_radius * sin(angle), z_offset);
-        atoms->velocities[i] = kDefaultVelocity;
     }
 
     return ENG_ERR_NO;
@@ -128,6 +120,8 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
     LOG_FUNC_START(gLogFile);
 
     // TODO: fixme
+    list->n_hole_hits = 0;
+    list->total_hole_energy = 0.0f;
     list->radius = 0.00005f;
     list->box_size = 0.89f;
     list->axis_divisions = divisions;
@@ -200,7 +194,6 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
 eng_Error eng_UpdatePositions(eng_AtomList* atoms, float delta_time) {
     assert(atoms);
 
-
     // TODO: SEVEROV OPTIMISATION
     for (size_t i = 0; i < atoms->size; i++) {
         if (atoms->is_freezed[i])
@@ -266,7 +259,8 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
     if (position->x - radius <= -box_size) {
         if ((position->y * position->y + position->z * position->z) <= hole_radius_2) {
             atoms->is_out_of_box[pos] = true;
-            atoms->total_hole_energy += atoms->velocities[pos] * atoms->velocities[pos];
+            float len = glm::length(atoms->velocities[pos]);
+            atoms->total_hole_energy += len * len;
             atoms->n_hole_hits++;
             return false;
         }
