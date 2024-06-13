@@ -252,7 +252,7 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
     if (atoms->is_out_of_box[pos] || atoms->is_freezed[pos])
         return false;
 
-    const float hole_radius = 0.105f;
+    const float hole_radius = atoms->hole_radius;
     const float hole_radius_2 = hole_radius * hole_radius;
 
     // Check if the atom is colliding with the hole in the left wall

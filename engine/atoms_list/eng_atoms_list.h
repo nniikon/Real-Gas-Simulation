@@ -33,6 +33,8 @@ struct eng_AtomList {
     eng_Mode mode;
     int n_hole_hits;
     float total_hole_energy;
+
+    float hole_radius;
 };
 
 eng_Error eng_AtomListConstructor(eng_AtomList* atoms, size_t size, uint16_t divisions);

@@ -47,9 +47,11 @@ void eng_SetMode(eng_AtomList* list, eng_Mode mode) {
 }
 
 
-eng_Error eng_Compute(eng_AtomList* list, const float deltaTime) {
+eng_Error eng_Compute(eng_AtomList* list, const float deltaTime, float radius, FILE* file) {
     assert(list);
     LOG_FUNC_START(gLogFile);
+
+    list->hole_radius = radius;
 
     static int time = 0;
 
@@ -61,6 +63,8 @@ eng_Error eng_Compute(eng_AtomList* list, const float deltaTime) {
         float avg_out_energy = list->total_hole_energy / (float)list->n_hole_hits;
         printf("average gas energy: %g\n",   avg_energy);
         printf("average out energy: %g\n\n", avg_out_energy);
+        fprintf(file, "average gas energy: %g\n",   avg_energy);
+        fprintf(file, "average out energy: %g\n\n", avg_out_energy);
 
         time = 0;
     }
