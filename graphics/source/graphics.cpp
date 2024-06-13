@@ -26,7 +26,7 @@
 
 static glm::ivec3 angle_vec(0, 0, 0);
 static float scale_scene = 0.5f;
-extern float radius;
+extern float radius_global;
 
 // callbacks
 static void graph_FrameBufferSizeCallback(GLFWwindow* window, int width, int height);
@@ -265,14 +265,14 @@ static void graph_CreateCircle(std::vector<glm::vec3>* box) {
 
     float angle_step = 2.0f * M_PI / kNLinesInCircle;
 
-    box->push_back(glm::vec3(-kScale, 0.0f, 1.0f * radius));
+    box->push_back(glm::vec3(-kScale, 0.0f, 1.0f * radius_global));
     for (size_t i = 1; i < kNLinesInCircle; i++) {
-        glm::vec3 new_point(-kScale, sin(angle_step * (float)i) * radius, cos(angle_step * (float)i) * radius);
+        glm::vec3 new_point(-kScale, sin(angle_step * (float)i) * radius_global, cos(angle_step * (float)i) * radius_global);
 
         box->push_back(new_point);
         box->push_back(new_point);
     }
-    box->push_back(glm::vec3(-kScale, 0.0f, 1.0f * radius));
+    box->push_back(glm::vec3(-kScale, 0.0f, 1.0f * radius_global));
 }
 
 // callbacks -------------------------------------------------------------------
@@ -312,10 +312,10 @@ static void graph_KeyboardCallback(GLFWwindow* window, int key, int scancode, in
             scale_scene /= 1.05f;
             break;
         case GLFW_KEY_1:
-            radius *= 1.05f;
+            radius_global *= 1.05f;
             break;
         case GLFW_KEY_2:
-            radius /= 1.05f;
+            radius_global /= 1.05f;
             break;
         default:
         #if defined(GRAPH_DEBUG)
