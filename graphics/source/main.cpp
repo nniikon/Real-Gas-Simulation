@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <unistd.h>
 #include <iostream>
+#include <cmath>
 
 #include "../../libs/logs/logs.h"
 #include "gas_structs.h"
@@ -8,6 +9,7 @@
 #include "graphics.h"
 
 static const size_t kNOfAtoms = 300000;
+float radius = 0.1f;
 
 int main(const int argc, const char** argv) {
     GLFWwindow* window = graph_SetUpRender();
@@ -23,7 +25,7 @@ int main(const int argc, const char** argv) {
     FILE* log_file = logOpenFile("engine_dump.html");
     if (log_file == nullptr) {
         std::cerr << "Error opening logfile" << std::endl; 
-        return 1;
+        return -1;
     }
     eng_SetLogFile(log_file);
 
@@ -60,3 +62,4 @@ int main(const int argc, const char** argv) {
 
     return 0;
 }
+
