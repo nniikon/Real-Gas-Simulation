@@ -67,6 +67,8 @@ eng_Error eng_Compute(eng_AtomList* list, const float deltaTime, float radius, F
         fprintf(file, "%g ",   avg_energy);
         fprintf(file, "%g\n", avg_out_energy);
 
+        list->n_hole_hits = 0;
+        list->total_hole_energy = 0.0f;
         time = 0;
     }
 

@@ -91,11 +91,15 @@ float eng_GetAvgSpeed(eng_AtomList* atoms) {
 float eng_GetAvgSpeed2(eng_AtomList* atoms) {
     float avg_speed = 0.0f;
     float len = 0.0f;
+    size_t n_atoms = 0;
     for (size_t i = 0; i < atoms->size; i++) {
-        len = glm::length(atoms->velocities[i]);
-        avg_speed += len * len;
+        if (!atoms->is_out_of_box[i]) {
+            len = glm::length(atoms->velocities[i]);
+            avg_speed += len * len;
+            n_atoms++;
+        }
     }
-    avg_speed /= (float)(atoms->size);
+    avg_speed /= (float)(n_atoms);
     return avg_speed;
 }
 
