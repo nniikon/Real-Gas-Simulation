@@ -61,10 +61,11 @@ eng_Error eng_Compute(eng_AtomList* list, const float deltaTime, float radius, F
     if (time == 100) {
         float avg_energy = eng_GetAvgSpeed2(list);
         float avg_out_energy = list->total_hole_energy / (float)list->n_hole_hits;
-        printf("average gas energy: %g\n",   avg_energy);
-        printf("average out energy: %g\n\n", avg_out_energy);
-        fprintf(file, "average gas energy: %g\n",   avg_energy);
-        fprintf(file, "average out energy: %g\n\n", avg_out_energy);
+        printf("average gas energy: %g\n", avg_energy);
+        printf("average out energy: %g\n", avg_out_energy);
+        printf("coefficient: %g\n\n", avg_out_energy / avg_energy);
+        fprintf(file, "%g ",   avg_energy);
+        fprintf(file, "%g\n", avg_out_energy);
 
         time = 0;
     }
