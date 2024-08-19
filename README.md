@@ -25,7 +25,7 @@ sudo apt install libglfw3-dev libgl-dev libxi-dev
 Clone the repository and build the project:
 
 ```
-git clone git@github.com:nniikon/Real-Gas-Simulation.git
+git clone git@github.com:nniikon/Real-Gas-Simulation.git --recursive
 cd Real-Gas-Simulation/
 make
 ```
