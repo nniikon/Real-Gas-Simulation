@@ -17,4 +17,5 @@ target_link_libraries(engine
         flags
         atoms_list
         libs
+        glm
 )

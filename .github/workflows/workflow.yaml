@@ -1,0 +1,27 @@
+name: build action
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        compiler: 
+          - { cc: gcc, cxx: g++ }
+          - { cc: clang, cxx: clang++ }
+        generator: [Ninja, Unix Makefiles]
+        build_type: [Debug, Release]
+    steps:
+      - name: clone
+        id: checkout
+        uses: actions/checkout@v4
+      - name: install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libglfw3-dev libgl-dev libxi-dev llvm
+      - name: build
+        run: |
+          cmake -S . -B build -G="${{matrix.generator}}" \
+            -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+            -DCMAKE_C_COMPILER=${{matrix.compiler.cc}} \
+            -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
+          cmake --build build --parallel `nproc`
