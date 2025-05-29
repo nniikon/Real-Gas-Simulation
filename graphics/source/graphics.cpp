@@ -5,12 +5,12 @@
 #include <vector>
 #include <iostream>
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include "fwd.hpp"
-#include "gtc/matrix_transform.hpp"
-#include "gtc/type_ptr.hpp"
-#include "gtx/string_cast.hpp"
-#include "glad/glad.h"
+// #define GLM_ENABLE_EXPERIMENTAL
+#include "glm/fwd.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/gtx/string_cast.hpp"
+#include "glad/gl.h"
 
 #include "gas_structs.h"
 
@@ -20,7 +20,7 @@
 #include "graphics_shaders.h"
 #include "graphics_box.h"
 
-#include "../../libs/debug/debug.h"
+#include "debug/dbg.h"
 
 // static ----------------------------------------------------------------------
 
@@ -57,7 +57,7 @@ GLFWwindow* graph_SetUpRender() {
 
     glfwMakeContextCurrent(window); 
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    if (!gladLoadGL(glfwGetProcAddress)) {
         glfwTerminate();
         return nullptr;
     }
