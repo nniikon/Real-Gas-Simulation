@@ -1,7 +1,7 @@
 #ifndef ENG_ATOMS_LIST_
 #define ENG_ATOMS_LIST_
 
-#include "../../glm/glm/glm.hpp"
+#include "glm/glm.hpp"
 #include <stdio.h>
    
 enum eng_Error {
@@ -32,6 +32,9 @@ struct eng_AtomList {
 
     eng_Mode mode;
     int n_hole_hits;
+    float total_hole_energy;
+
+    float hole_radius;
 };
 
 eng_Error eng_AtomListConstructor(eng_AtomList* atoms, size_t size, uint16_t divisions);
@@ -40,6 +43,7 @@ eng_Error eng_HandleInteractions (eng_AtomList* atoms);
 eng_Error eng_SetRandomPositions (eng_AtomList* atoms);
 eng_Error eng_SetDefaultPositions(eng_AtomList* atoms);
 float     eng_GetAvgSpeed        (eng_AtomList* atoms);
+float     eng_GetAvgSpeed2       (eng_AtomList* atoms);
 void      eng_ListSetLogFile(FILE* file);
 
 #endif // ENG_ATOMS_LIST_

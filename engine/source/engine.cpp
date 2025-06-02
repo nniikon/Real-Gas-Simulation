@@ -47,31 +47,32 @@ void eng_SetMode(eng_AtomList* list, eng_Mode mode) {
 }
 
 
-eng_Error eng_Compute(eng_AtomList* list, const float deltaTime) {
+eng_Error eng_Compute(eng_AtomList* list, const float deltaTime, float radius, FILE* file) {
     assert(list);
     LOG_FUNC_START(gLogFile);
+
+    list->hole_radius = radius;
 
     static int time = 0;
 
     eng_HandleInteractions(list);
     eng_UpdatePositions   (list, deltaTime);
 
-    time++;
     if (time == 100) {
-        float avg_speed = eng_GetAvgSpeed(list);
-        float area = 3.141592 * 0.1*0.1;
-        float n    = (float)list->size / (2*2*2*0.90 * 0.90 * 0.90);
-        float z    = n * avg_speed / 4;
-        float z2    = n * avg_speed / 6;
-        float predict = z * area;
-        float predict2 = z2 * area;
-        printf("Hole hits:         %d\n", list->n_hole_hits);
-        printf("predictCorrect:    %g\n", predict);
-        printf("predictIncorrect:  %g\n\n", predict2);
-        list->n_hole_hits = 0;
-        time = 0;
+        float avg_energy = eng_GetAvgSpeed2(list);
+        float avg_out_energy = list->total_hole_energy / (float)list->n_hole_hits;
+        printf("average gas energy: %g\n", avg_energy);
+        printf("average out energy: %g\n", avg_out_energy);
+        printf("coefficient: %g\n\n", avg_out_energy / avg_energy);
+        fprintf(file, "%g ",   avg_energy);
+        fprintf(file, "%g\n", avg_out_energy);
 
+        list->n_hole_hits = 0;
+        list->total_hole_energy = 0.0f;
+        time = 0;
     }
+
+    time++;
 
     //for (size_t atom = 0; atom < list->size; atom++) {
     //    LOGF_COLOR(gLogFile, blue, "Atom %lu\n", atom);

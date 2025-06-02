@@ -9,7 +9,7 @@ const char* eng_GetErrorMsg(const eng_Error err);
 
 void eng_SetMode     (                  eng_AtomList* list, eng_Mode mode);
 eng_Error eng_Ctor   (gas_Atoms* atoms, eng_AtomList* list, const size_t n_atoms);
-eng_Error eng_Compute(                  eng_AtomList* list, const float deltaTime);
+eng_Error eng_Compute(eng_AtomList* list, const float deltaTime, float radius, FILE* file);
 
 void eng_SetLogFile(FILE* file);
 

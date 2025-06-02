@@ -5,12 +5,12 @@
 #include <vector>
 #include <iostream>
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include "fwd.hpp"
-#include "gtc/matrix_transform.hpp"
-#include "gtc/type_ptr.hpp"
-#include "gtx/string_cast.hpp"
-#include "glad/glad.h"
+// #define GLM_ENABLE_EXPERIMENTAL
+#include "glm/fwd.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/gtx/string_cast.hpp"
+#include "glad/gl.h"
 
 #include "gas_structs.h"
 
@@ -20,12 +20,13 @@
 #include "graphics_shaders.h"
 #include "graphics_box.h"
 
-#include "../../libs/debug/debug.h"
+#include "debug/dbg.h"
 
 // static ----------------------------------------------------------------------
 
 static glm::ivec3 angle_vec(0, 0, 0);
 static float scale_scene = 0.5f;
+extern float radius_global;
 
 // callbacks
 static void graph_FrameBufferSizeCallback(GLFWwindow* window, int width, int height);
@@ -56,7 +57,7 @@ GLFWwindow* graph_SetUpRender() {
 
     glfwMakeContextCurrent(window); 
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    if (!gladLoadGL(glfwGetProcAddress)) {
         glfwTerminate();
         return nullptr;
     }
@@ -71,14 +72,17 @@ GLFWwindow* graph_SetUpRender() {
 }
 
 void graph_TellAboutControls() {
-    std::cout << "Quit: Q" << std::endl
+    std::cout << "Quit:      Q" << std::endl
               << "Rotate +X: Z" << std::endl
               << "Rotate +Y: X" << std::endl
               << "Rotate +Z: C" << std::endl
               << "Rotate -X: A" << std::endl
               << "Rotate -Y: S" << std::endl
               << "Rotate -Z: D" << std::endl
-              << "Dump velocities: V" << std::endl;
+              << "Zoom in:   +" << std::endl
+              << "Zoom out:  -" << std::endl
+              << "Radius+:   1" << std::endl
+              << "Radius-:   2" << std::endl;
 }
 
 GraphShaders graph_CompileShaders() {
@@ -260,19 +264,18 @@ static void graph_CreateCircle(std::vector<glm::vec3>* box) {
     assert(box != nullptr);
 
     float angle_step = 2.0f * M_PI / kNLinesInCircle;
-    float radius = 0.1f;
 
-    box->push_back(glm::vec3(-kScale, 0.0f, 1.0f * radius));
+    box->push_back(glm::vec3(-kScale, 0.0f, 1.0f * radius_global));
     for (size_t i = 1; i < kNLinesInCircle; i++) {
-        glm::vec3 new_point(-kScale, sin(angle_step * (float)i) * radius, cos(angle_step * (float)i) * radius);
+        glm::vec3 new_point(-kScale, sin(angle_step * (float)i) * radius_global, cos(angle_step * (float)i) * radius_global);
 
         box->push_back(new_point);
         box->push_back(new_point);
     }
-    box->push_back(glm::vec3(-kScale, 0.0f, 1.0f * radius));
+    box->push_back(glm::vec3(-kScale, 0.0f, 1.0f * radius_global));
 }
 
-// callbacks
+// callbacks -------------------------------------------------------------------
 
 static void graph_FrameBufferSizeCallback(GLFWwindow* window, int width, int height) {
     assert(window != nullptr);
@@ -286,37 +289,33 @@ static void graph_KeyboardCallback(GLFWwindow* window, int key, int scancode, in
            glfwSetWindowShouldClose(window, GLFW_TRUE); 
         case GLFW_KEY_Z:
             angle_vec.x++;
-            // angle_vec.x %= 360;
             break;
         case GLFW_KEY_X:
             angle_vec.y++;
-            // angle_vec.y %= 360;
             break;
         case GLFW_KEY_C:
             angle_vec.z++;
-            // angle_vec.z %= 360;
             break;
         case GLFW_KEY_A:
             angle_vec.x--;
-            // angle_vec.x %= 360;
             break;
         case GLFW_KEY_S:
             angle_vec.y--;
-            // angle_vec.y %= 360;
             break;
         case GLFW_KEY_D:
             angle_vec.z--;
-            // angle_vec.z %= 360;            
             break;
-        case GLFW_KEY_V:
-            // dump v
-            break;
-        
         case GLFW_KEY_EQUAL:
             scale_scene *= 1.05f;
             break;
         case GLFW_KEY_MINUS:
             scale_scene /= 1.05f;
+            break;
+        case GLFW_KEY_1:
+            radius_global *= 1.05f;
+            break;
+        case GLFW_KEY_2:
+            radius_global /= 1.05f;
             break;
         default:
         #if defined(GRAPH_DEBUG)
@@ -328,5 +327,6 @@ static void graph_KeyboardCallback(GLFWwindow* window, int key, int scancode, in
 #if defined (GRAPH_DEBUG)
     std::cerr << "# angle vector: " << glm::to_string(angle_vec) << std::endl;
     std::cerr << "# scale float: " << scale_scene << std::endl;
+    std::cerr << "# radius: " << radius << std::endl;
 #endif // GRAPH_DEBUG
 }

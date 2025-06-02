@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <immintrin.h>
-#include "../../libs/logs/logs.h"
+#include "logs/logs.h"
 
 static FILE* gLogFile = nullptr;
 
@@ -40,17 +40,40 @@ static glm::vec3 GetRandomVector(float (*func)()) {
 }
 
 
+// Function to generate normally distributed random numbers using Box-Muller transform
+static float generateNormalRandom(float mean, float stdDev) {
+    static bool hasSpare = false;
+    static double spare;
+
+    if (hasSpare) {
+        hasSpare = false;
+        return mean + stdDev * spare;
+    }
+
+    hasSpare = true;
+    static const double twoPi = 2.0 * M_PI;
+    double u1 = 0.0;
+    double u2 = 0.0;
+    do {
+        u1 = (double)rand() / RAND_MAX;
+        u2 = (double)rand() / RAND_MAX;
+    } while (u1 <= std::numeric_limits<double>::min());
+
+    double sqrtMinus2LogU1 = sqrt(-2.0 * log(u1));
+    spare = sqrtMinus2LogU1 * sin(twoPi * u2);
+    return mean + stdDev * (sqrtMinus2LogU1 * cos(twoPi * u2));
+}
+
+
 static glm::vec3 GetRandomVelocityVector() {
-    const float magnitude = 0.8f;
+    const float mean = 0.0f;
+    const float stdDev = 1.0f;
 
-    float theta = (float)(rand()) / static_cast<float>(RAND_MAX) * 2.0f * M_PI;
-    float phi =   (float)(rand()) / static_cast<float>(RAND_MAX) * M_PI;
+    float x = generateNormalRandom(mean, stdDev);
+    float y = generateNormalRandom(mean, stdDev);
+    float z = generateNormalRandom(mean, stdDev);
 
-    float x = magnitude * sin(phi) * cos(theta);
-    float y = magnitude * sin(phi) * sin(theta);
-    float z = magnitude * cos(phi);
-
-    return glm::vec3(x, y, z);
+    return {x, y, z};
 }
 
 
@@ -64,33 +87,29 @@ float eng_GetAvgSpeed(eng_AtomList* atoms) {
 }
 
 
+// FIXME copypaste
+float eng_GetAvgSpeed2(eng_AtomList* atoms) {
+    float avg_speed = 0.0f;
+    float len = 0.0f;
+    size_t n_atoms = 0;
+    for (size_t i = 0; i < atoms->size; i++) {
+        if (!atoms->is_out_of_box[i]) {
+            len = glm::length(atoms->velocities[i]);
+            avg_speed += len * len;
+            n_atoms++;
+        }
+    }
+    avg_speed /= (float)(n_atoms);
+    return avg_speed;
+}
+
+
 eng_Error eng_SetRandomPositions(eng_AtomList* atoms) {
     assert(atoms);
 
     for (size_t i = 0; i < atoms->size; i++) {
-        atoms->positions [i] = GetRandomVector        (GetRandomCoordinate);
+        atoms->positions [i] = GetRandomVector(GetRandomCoordinate);
         atoms->velocities[i] = GetRandomVelocityVector();
-    }
-
-    return ENG_ERR_NO;
-}
-
-
-eng_Error eng_SetDefaultPositions(eng_AtomList* atoms) {
-    assert(atoms);
-
-    const float hole_radius = 0.1000f;
-    const float angle = glm::radians(60.0f);
-    const float box_size = atoms->box_size;
-    const float distance_between_atoms = atoms->radius * 2.0f;
-
-    glm::vec3 kDefaultVelocity = glm::vec3(-cos(angle) / 10, sin(angle) / 10, 0.0f);
-
-    for (size_t i = 0; i < atoms->size; i++) {
-        float z_offset = i * distance_between_atoms;
-
-        atoms->positions[i] = glm::vec3(-box_size - (i * distance_between_atoms), hole_radius * sin(angle), z_offset);
-        atoms->velocities[i] = kDefaultVelocity;
     }
 
     return ENG_ERR_NO;
@@ -105,6 +124,8 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
     LOG_FUNC_START(gLogFile);
 
     // TODO: fixme
+    list->n_hole_hits = 0;
+    list->total_hole_energy = 0.0f;
     list->radius = 0.00005f;
     list->box_size = 0.89f;
     list->axis_divisions = divisions;
@@ -177,7 +198,6 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
 eng_Error eng_UpdatePositions(eng_AtomList* atoms, float delta_time) {
     assert(atoms);
 
-
     // TODO: SEVEROV OPTIMISATION
     for (size_t i = 0; i < atoms->size; i++) {
         if (atoms->is_freezed[i])
@@ -233,30 +253,20 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
     float box_size = atoms->box_size;
     float radius = atoms->radius;
 
-    if (position->x < -1.5 || position->x > 1.5 ||
-        position->y < -1.5 || position->y > 1.5 ||
-        position->z < -1.5 || position->z > 1.5   ) {
-        atoms->is_freezed[pos] = true;
-        return false;
-    }
-
     if (atoms->is_out_of_box[pos] || atoms->is_freezed[pos])
         return false;
 
-    const float hole_radius = 0.105f;
+    const float hole_radius = atoms->hole_radius;
     const float hole_radius_2 = hole_radius * hole_radius;
 
     // Check if the atom is colliding with the hole in the left wall
-    //if (position->x - radius <= -box_size) {
-    //    if ((position->y * position->y + position->z * position->z) <= hole_radius_2) {
-    //        atoms->is_out_of_box[pos] = true;
-    //        return false;
-    //    }
-    //}
-
     if (position->x - radius <= -box_size) {
         if ((position->y * position->y + position->z * position->z) <= hole_radius_2) {
+            atoms->is_out_of_box[pos] = true;
+            float len = glm::length(atoms->velocities[pos]);
+            atoms->total_hole_energy += len * len;
             atoms->n_hole_hits++;
+            return false;
         }
     }
 

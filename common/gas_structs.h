@@ -2,7 +2,7 @@
 #define GAS_STRUCTS_H_
 
 #include "stdint.h"
-#include "../glm/glm/glm.hpp"
+#include "glm/glm.hpp"
 
 struct gas_Atoms {
     glm::vec3*   coords;
