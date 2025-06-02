@@ -11,7 +11,7 @@ target_compile_options(${FLAGS_TARGET}
     INTERFACE
         -fdiagnostics-color=always
  
-        -Wno-interference-size
+        # -Wno-interference-size
 
         -Wall
         -Wextra
@@ -22,6 +22,7 @@ target_compile_options(${FLAGS_TARGET}
         -Wunused
         -Wformat=2
         -Wnon-virtual-dtor
+        -Wswitch-enum
 
         -fstack-protector-strong # inserts checks for buffer overflow
         # -fPIE -pie
@@ -30,7 +31,7 @@ target_compile_options(${FLAGS_TARGET}
             -Og
             -g3
             -ggdb
-            -fsanitize=address,leak,undefined
+            -fsanitize=address,leak,undefined,float-divide-by-zero
             -fno-omit-frame-pointer
         >
 
@@ -56,7 +57,7 @@ target_link_options(${FLAGS_TARGET}
             -Og
             -g3
             -ggdb
-            -fsanitize=address,leak,undefined
+            -fsanitize=address,leak,undefined,float-divide-by-zero
             -fno-omit-frame-pointer
         >
 
