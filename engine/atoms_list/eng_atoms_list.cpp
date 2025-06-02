@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <immintrin.h>
-#include "../../libs/logs/logs.h"
+#include "logs/logs.h"
 
 static FILE* gLogFile = nullptr;
 

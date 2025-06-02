@@ -1,7 +1,7 @@
 #ifndef ENG_ATOMS_LIST_
 #define ENG_ATOMS_LIST_
 
-#include "../../glm/glm/glm.hpp"
+#include "glm/glm.hpp"
 #include <stdio.h>
    
 enum eng_Error {

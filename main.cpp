@@ -1,14 +1,13 @@
+#include <iostream>
 #include <cstddef>
 #include <unistd.h>
-#include <iostream>
-#include <cmath>
 
-#include "../../libs/logs/logs.h"
+#include "logs/logs.h"
 #include "gas_structs.h"
 #include "engine.h"
 #include "graphics.h"
 
-static const size_t kNOfAtoms = 300000;
+static const size_t kNOfAtoms = 3000'000;
 float radius_global = 0.1f;
 
 int main(const int argc, const char** argv) {

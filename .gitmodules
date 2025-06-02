@@ -1,6 +1,0 @@
-[submodule "glm"]
-	path = glm
-	url = https://github.com/g-truc/glm
-[submodule "glad_fork"]
-	path = glad_fork
-	url = https://github.com/fogInSingularity/glad_fork

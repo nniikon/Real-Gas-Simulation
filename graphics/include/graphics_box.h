@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#include "fwd.hpp"
+#include "glm/fwd.hpp"
 
 static const float kScale = 0.9f;
 
