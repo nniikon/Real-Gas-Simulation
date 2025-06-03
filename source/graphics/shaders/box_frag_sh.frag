@@ -13,7 +13,7 @@ void main()
 
     // Calculate color intensity (closer points are brighter, further points are darker)
     float intensity =  1.2 * distance;
-    
+
     mat4 depth_mat = mat4(intensity);
 
     // Set the fragment color

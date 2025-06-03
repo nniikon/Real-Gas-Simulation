@@ -1,7 +1,7 @@
 add_library(graphics STATIC)
 
 target_sources(graphics
-    PRIVATE    
+    PRIVATE
         source/graphics.cpp
         source/graphics_log.cpp
         source/graphics_shaders.cpp

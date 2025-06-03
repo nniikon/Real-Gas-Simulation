@@ -20,6 +20,6 @@ std::vector<std::string> graph_LoadShaders(std::vector<std::string> file_names_a
 
         shader_file.close();
     }
-    
+
     return shader_arr;
 }

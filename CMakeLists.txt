@@ -28,11 +28,11 @@ target_link_libraries(gas
         libs
 
         glm
-        glad 
+        glad
         glfw
         GL
-        X11 
-        pthread 
-        Xrandr 
+        X11
+        pthread
+        Xrandr
         Xi
 )

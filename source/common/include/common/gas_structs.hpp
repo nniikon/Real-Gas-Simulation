@@ -11,4 +11,4 @@ struct gas_Atoms {
     float        radius;
 };
 
-#endif // GAS_STRUCTS_H_ 
+#endif // GAS_STRUCTS_H_

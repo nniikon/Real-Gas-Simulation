@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include <glm/glm.hpp>
-   
+
 enum eng_Error {
     #define DEF_ERR(err, msg) ENG_ERR_ ## err,
     #include "engine/engine_errors_codegen.inc"

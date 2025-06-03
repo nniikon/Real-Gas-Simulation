@@ -38,7 +38,7 @@ eng_Error eng_Ctor(gas_Atoms* atoms, eng_AtomList* list, const size_t n_atoms) {
     atoms->coords = list->positions;
     atoms->n_coords = n_atoms;
 
-    LOG_FUNC_END(gLogFile); 
+    LOG_FUNC_END(gLogFile);
     return ENG_ERR_NO;
 }
 

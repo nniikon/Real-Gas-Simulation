@@ -8,9 +8,9 @@
 
 #include "graphics/graphics_defs.hpp"
 
-// debug 
+// debug
 #ifdef GRAPHICS_DEBUG_CALLS
-    #define $ GLLogError(__FILE__, __LINE__); 
+    #define $ GLLogError(__FILE__, __LINE__);
 #else
     #define $ ;
 #endif // GRAPHICS_DEBUG_CALLS
