@@ -25,14 +25,16 @@ sudo apt install libglfw3-dev libgl-dev libxi-dev
 Clone the repository and build the project:
 
 ```
-git clone git@github.com:nniikon/Real-Gas-Simulation.git --recursive
+git clone git@github.com:nniikon/Real-Gas-Simulation.git
 cd Real-Gas-Simulation/
-make
+
+cmake -B build -S .
+cmake --build build
 ```
 
 To run the project, simply type:
 
 ```
-make run
+./build/gas
 ```
 
