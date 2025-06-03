@@ -1,7 +1,7 @@
 #ifndef LOGS_H_
 #define LOGS_H_
 
-#include <stdio.h> 
+#include <stdio.h>
 #include <stdlib.h>
 
 void getCurrentTimeStr(char* str, size_t bufferSize);
@@ -64,11 +64,11 @@ FILE* logOpenFile(const char* fileName);
     #define LOG_FUNC_END(file)   LOGF_COLOR(file, purple, "%s ended\n",   __PRETTY_FUNCTION__)
 #else
     #define LOG_COLOR(...)       (void)0
-    #define LOG_START_COLOR(...) (void)0                                    
-    #define LOG_END(...)         (void)0                                                  
+    #define LOG_START_COLOR(...) (void)0
+    #define LOG_END(...)         (void)0
     #define LOGF_COLOR(...)      (void)0
     #define LOGF(...)            (void)0
-    #define LOGF_ERR(file, ...)  (void)0 
+    #define LOGF_ERR(file, ...)  (void)0
     #define LOGF_WRN(file, ...)  (void)0
     #define LOG_FUNC_START(...)  (void)0
     #define LOG_FUNC_END(...)    (void)0

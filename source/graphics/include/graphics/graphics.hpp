@@ -6,7 +6,7 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
-#include "common/gas_structs.h"
+#include "common/gas_structs.hpp"
 
 #include "graphics/graphics_cfg.hpp"
 #include "graphics/graphics_defs.hpp"

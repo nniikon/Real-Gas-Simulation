@@ -1,8 +1,8 @@
-#include "engine/engine.h"
+#include "engine/engine.hpp"
 
 #include <assert.h>
 
-#include "logs/logs.h"
+#include "logs/logs.hpp"
 
 static FILE* gLogFile = nullptr;
 

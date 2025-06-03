@@ -1,9 +1,9 @@
 #include <iostream>
 #include <cstddef>
 
-#include "logs/logs.h"
-#include "common/gas_structs.h"
-#include "engine/engine.h"
+#include "logs/logs.hpp"
+#include "common/gas_structs.hpp"
+#include "engine/engine.hpp"
 #include "graphics/graphics.hpp"
 
 static const size_t kNOfAtoms = 3'000'000;

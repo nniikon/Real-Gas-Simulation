@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 
-#include "lib_config.h"
-#include "color.h"
+#include "lib_config.hpp"
+#include "color.hpp"
 
 #define USE_VAR(var) (void)var;
 

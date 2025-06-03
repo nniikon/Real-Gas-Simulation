@@ -1,12 +1,12 @@
 // Check atoms_docpdf.pdf for a better understanding 
 
-#include "engine/eng_atoms_list.h"
+#include "engine/eng_atoms_list.hpp"
 
 #include <assert.h>
 #include <stdlib.h>
 #include <immintrin.h>
 
-#include "logs/logs.h"
+#include "logs/logs.hpp"
 
 static FILE* gLogFile = nullptr;
 

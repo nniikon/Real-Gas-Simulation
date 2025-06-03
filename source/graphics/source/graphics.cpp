@@ -12,14 +12,14 @@
 #include <glm/gtx/string_cast.hpp>
 #include <glad/gl.h>
 
-#include "common/gas_structs.h"
+#include "common/gas_structs.hpp"
 
 #include "graphics/graphics_defs.hpp"
 #include "graphics/graphics_log.hpp"
 #include "graphics/graphics_shaders.hpp"
 #include "graphics/graphics_box.hpp"
 
-#include "debug/dbg.h"
+#include "debug/dbg.hpp"
 
 // static ----------------------------------------------------------------------
 
