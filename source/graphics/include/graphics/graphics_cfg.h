@@ -1,7 +1,7 @@
 #ifndef GRAPHICS_CFG_H_
 #define GRAPHICS_CFG_H_
 
-#include <stddef.h>
+#include <cstddef>
 
 #if defined (GRAPH_DEBUG)
     #define GRAPHICS_DEBUG_SHADER

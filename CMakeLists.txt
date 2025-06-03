@@ -6,17 +6,17 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # to generate compile_commands.json
 
 add_executable(gas)
 
-add_subdirectory(third_party)
-add_subdirectory(flags)
+add_subdirectory(source/third_party)
+add_subdirectory(source/flags)
 
-add_subdirectory(graphics)
-add_subdirectory(libs)
-add_subdirectory(common)
-add_subdirectory(engine)
+add_subdirectory(source/graphics)
+add_subdirectory(source/libs)
+add_subdirectory(source/common)
+add_subdirectory(source/engine)
 
 target_sources(gas
     PRIVATE
-        main.cpp
+        source/main.cpp
 )
 
 target_link_libraries(gas

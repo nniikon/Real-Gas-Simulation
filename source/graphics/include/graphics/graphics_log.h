@@ -1,11 +1,9 @@
 #ifndef GRAPHICS_LOG_H_
 #define GRAPHICS_LOG_H_
 
-#include <stddef.h>
-#include <stdio.h>
+#include <cstddef>
+#include <cstdio>
 
-#include "glm/fwd.hpp"
-#include "glad/gl.h"
 #include <GLFW/glfw3.h>
 
 #include "graphics_defs.h"

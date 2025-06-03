@@ -4,7 +4,6 @@
 #include <stdio.h>
 
 #include "lib_config.h"
-
 #include "color.h"
 
 #define USE_VAR(var) (void)var;
@@ -43,39 +42,39 @@
 #endif // DEBUG
 
 // #ifdef SINGLE_DOLLAR_ON
-// #define $         (void)fprintf(stderr, BOLD MAGENTA ">>> %s(%d) %s\n"  RESET,\
+// #define $         (void)fprintf(stderr, BOLD MAGENTA ">>> %s(%d) %s\n"  RESET,   \
 //                          __FILE__, __LINE__, __PRETTY_FUNCTION__);
 // #else
 // #define $ ;
 // #endif // SINGLE_DOLLAR_ON
 
 #ifdef DOUBLE_DOLLAR_ON
-#define $$(...) { (void)fprintf(stderr,                                       \
-                                BOLD GREEN"  [ %s ][ %d ][ %s ][ %s ]\n" RESET,\
-                                __FILE__,                                     \
-                                __LINE__,                                     \
-                                __PRETTY_FUNCTION__,                          \
-                                #__VA_ARGS__);                                \
+#define $$(...) { (void)fprintf(stderr,                                             \
+                                BOLD GREEN"  [ %s ][ %d ][ %s ][ %s ]\n" RESET,     \
+                                __FILE__,                                           \
+                                __LINE__,                                           \
+                                __PRETTY_FUNCTION__,                                \
+                                #__VA_ARGS__);                                      \
                   __VA_ARGS__; }
 #else
 #define $$(...) { __VA_ARGS__; }
 #endif // DOUBLE_DOLLAR_ON
 
 #ifdef TRIPLE_DOLLAR_ON
-#define $$$       (void)fprintf(stderr,                                       \
-                                BOLD BLUE "{ %s }{ %d }{ %s }\n" RESET,     \
-                                __PRETTY_FUNCTION__,                          \
-                                __LINE__,                                     \
+#define $$$       (void)fprintf(stderr,                                             \
+                                BOLD BLUE "{ %s }{ %d }{ %s }\n" RESET,             \
+                                __PRETTY_FUNCTION__,                                \
+                                __LINE__,                                           \
                                 __FILE__);
 #else
 #define $$$ ;
 #endif // TRIPLE_DOLLAR_ON
 
 #if defined (QUAD_DOLLAR_ON)
-#define $$$$       (void)fprintf(stderr,                                       \
-                                BOLD RED "{ %s }{ %d }{ %s }\n" RESET,     \
-                                __PRETTY_FUNCTION__,                          \
-                                __LINE__,                                     \
+#define $$$$       (void)fprintf(stderr,                                            \
+                                BOLD RED "{ %s }{ %d }{ %s }\n" RESET,              \
+                                __PRETTY_FUNCTION__,                                \
+                                __LINE__,                                           \
                                 __FILE__);
 #else
 #define $$$$ ;
