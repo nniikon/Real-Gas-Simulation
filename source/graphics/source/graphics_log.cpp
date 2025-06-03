@@ -1,4 +1,4 @@
-#include "graphics/graphics_log.h"
+#include "graphics/graphics_log.hpp"
 
 #include <cassert>
 

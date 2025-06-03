@@ -4,7 +4,7 @@
 #include "logs/logs.h"
 #include "common/gas_structs.h"
 #include "engine/engine.h"
-#include "graphics/graphics.h"
+#include "graphics/graphics.hpp"
 
 static const size_t kNOfAtoms = 3'000'000;
 float radius_global = 0.1f;

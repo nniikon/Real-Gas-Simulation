@@ -6,7 +6,7 @@
 
 #include <GLFW/glfw3.h>
 
-#include "graphics_defs.h"
+#include "graphics/graphics_defs.hpp"
 
 // debug 
 #ifdef GRAPHICS_DEBUG_CALLS

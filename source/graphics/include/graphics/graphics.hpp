@@ -8,8 +8,8 @@
 
 #include "common/gas_structs.h"
 
-#include "graphics/graphics_cfg.h"
-#include "graphics/graphics_defs.h"
+#include "graphics/graphics_cfg.hpp"
+#include "graphics/graphics_defs.hpp"
 
 struct GraphShaders {
     GLId main_shader_program_id;

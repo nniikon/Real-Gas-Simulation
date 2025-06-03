@@ -1,4 +1,4 @@
-#include "graphics/graphics.h"
+#include "graphics/graphics.hpp"
 
 #include <cstddef>
 #include <string>
@@ -14,10 +14,10 @@
 
 #include "common/gas_structs.h"
 
-#include "graphics/graphics_defs.h"
-#include "graphics/graphics_log.h"
-#include "graphics/graphics_shaders.h"
-#include "graphics/graphics_box.h"
+#include "graphics/graphics_defs.hpp"
+#include "graphics/graphics_log.hpp"
+#include "graphics/graphics_shaders.hpp"
+#include "graphics/graphics_box.hpp"
 
 #include "debug/dbg.h"
 
