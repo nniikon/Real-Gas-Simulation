@@ -17,7 +17,7 @@ void GLLogShaderError([[maybe_unused]] GLId shader_id) {
 #if defined (GRAPHICS_DEBUG_SHADER)
     int success = 0;
     char log[512];
-    
+
     glGetShaderiv(shader_id, GL_COMPILE_STATUS, &success); $
     if (!success) {
         glGetShaderInfoLog(shader_id, sizeof(log), NULL, log); $
@@ -30,7 +30,7 @@ void GLLogLinkError([[maybe_unused]] GLId shader_program) {
 #ifdef GRAPHICS_DEBUG_SHADER
     int success = 0;
     char log[512];
-    
+
     glGetProgramiv(shader_program, GL_LINK_STATUS, &success); $
     if (!success) {
         glGetProgramInfoLog(shader_program, sizeof(log), NULL, log); $

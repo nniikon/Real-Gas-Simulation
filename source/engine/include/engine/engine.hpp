@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 
-#include "common/gas_structs.h"
-#include "engine/eng_atoms_list.h"
+#include "common/gas_structs.hpp"
+#include "engine/eng_atoms_list.hpp"
 
 const char* eng_GetErrorMsg(const eng_Error err);
 

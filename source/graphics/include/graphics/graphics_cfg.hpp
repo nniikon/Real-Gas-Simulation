@@ -13,7 +13,7 @@
 UNUSED static const int kOpenGLMajorVersion    = 3;
 UNUSED static const int kOpenGLMinorVersion    = 3;
 
-UNUSED static const size_t kNDimensions        = 3; 
+UNUSED static const size_t kNDimensions        = 3;
 UNUSED static const int    graph_kWindowWidth  = 1024;
 UNUSED static const int    graph_kWindowHeight = 1024;
 UNUSED static const char*  graph_kWindowTitle  = "gas experiment";

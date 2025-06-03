@@ -27,20 +27,20 @@ static const glm::vec3 kBox[] = {
 
     { kScale,  kScale,  kScale},
     { kScale,  kScale, -kScale},
-    
+
     { kScale,  kScale, -kScale},
     { kScale, -kScale, -kScale},
-    
+
     { kScale, -kScale, -kScale},
     { kScale, -kScale,  kScale},
-    
+
     // Left face
     {-kScale, -kScale,  kScale},
     {-kScale,  kScale,  kScale},
 
     {-kScale,  kScale,  kScale},
     {-kScale,  kScale, -kScale},
-    
+
     {-kScale,  kScale, -kScale},
     {-kScale, -kScale, -kScale},
 
@@ -52,7 +52,7 @@ static const glm::vec3 kBox[] = {
 
     { kScale,  kScale, -kScale},
     { kScale, -kScale, -kScale},
-    
+
     { kScale, -kScale, -kScale},
     {-kScale, -kScale, -kScale},
 
@@ -61,7 +61,7 @@ static const glm::vec3 kBox[] = {
     // // Top face
     // {-1, 1, 1},
     // {1, 1, 1},
-    
+
     // {1, 1, 1},
     // {1, 1, -1},
 
@@ -79,7 +79,7 @@ static const glm::vec3 kBox[] = {
 
     // {1, -1, -1},
     // {1, -1, 1},
-    
+
     // {1, -1, 1},
     // {-1, -1, 1},
 };

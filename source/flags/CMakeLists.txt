@@ -10,7 +10,7 @@ target_compile_features(${FLAGS_TARGET}
 target_compile_options(${FLAGS_TARGET}
     INTERFACE
         -fdiagnostics-color=always
- 
+
         # -Wno-interference-size
 
         -Wall
@@ -26,7 +26,7 @@ target_compile_options(${FLAGS_TARGET}
 
         -fstack-protector-strong # inserts checks for buffer overflow
         # -fPIE -pie
-        
+
         $<$<CONFIG:Debug>:
             -Og
             -g3

@@ -1,12 +1,12 @@
-// Check atoms_docpdf.pdf for a better understanding 
+// Check atoms_docpdf.pdf for a better understanding
 
-#include "engine/eng_atoms_list.h"
+#include "engine/eng_atoms_list.hpp"
 
 #include <assert.h>
 #include <stdlib.h>
 #include <immintrin.h>
 
-#include "logs/logs.h"
+#include "logs/logs.hpp"
 
 static FILE* gLogFile = nullptr;
 
@@ -207,7 +207,7 @@ eng_Error eng_UpdatePositions(eng_AtomList* atoms, float delta_time) {
 
         atoms->positions[i] += atoms->velocities[i] * delta_time;
     }
-    
+
     return ENG_ERR_NO;
 }
 
@@ -365,7 +365,7 @@ static eng_Error eng_ListPush(eng_AtomList* atoms, int64_t list_index, int64_t e
     atoms->prev[elem_index] = last;
     atoms->next[last] = elem_index;
     atoms->prev[-list_index] = elem_index;
-    
+
     return ENG_ERR_NO;
 }
 
@@ -557,7 +557,7 @@ static void eng_AdjustLists(eng_AtomList* atoms) {
                         y_low <= pos_y && pos_y <= y_top &&
                         z_low <= pos_z && pos_z <= z_top)
                     {
-                        size_t list_index = axis_divisions * axis_divisions * x + 
+                        size_t list_index = axis_divisions * axis_divisions * x +
                                             axis_divisions * y + z;
                         eng_ListPush(atoms, (int64_t)list_index, (int64_t)n_atom);
                     }
