@@ -1,12 +1,13 @@
 #ifndef ENG_ATOMS_LIST_
 #define ENG_ATOMS_LIST_
 
-#include "glm/glm.hpp"
 #include <stdio.h>
+
+#include <glm/glm.hpp>
    
 enum eng_Error {
     #define DEF_ERR(err, msg) ENG_ERR_ ## err,
-    #include "../include/engine_errors_codegen.inc"
+    #include "engine/engine_errors_codegen.inc"
     #undef  DEF_ERR
 };
 

@@ -3,13 +3,13 @@
 
 #include <assert.h>
 
-#include "glad/gl.h"
+#include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
-#include "gas_structs.h"
+#include "common/gas_structs.h"
 
-#include "graphics_cfg.h"
-#include "graphics_defs.h"
+#include "graphics/graphics_cfg.hpp"
+#include "graphics/graphics_defs.hpp"
 
 struct GraphShaders {
     GLId main_shader_program_id;
@@ -24,6 +24,5 @@ void graph_TellAboutControls();
 GraphShaders graph_CompileShaders();
 
 void Render(gas_Atoms* atoms, const GraphShaders& shader_ids);
-
 
 #endif // GRAPHICS_H_

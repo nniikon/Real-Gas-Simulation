@@ -1,9 +1,9 @@
 #ifndef GRAPHICS_BOX_H_
 #define GRAPHICS_BOX_H_
 
-#include <stddef.h>
+#include <cstddef>
 
-#include "glm/fwd.hpp"
+#include <glm/fwd.hpp>
 
 static const float kScale = 0.9f;
 

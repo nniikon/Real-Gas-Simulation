@@ -1,7 +1,8 @@
-#include "../include/engine.h"
-#include "../../libs/logs/logs.h"
+#include "engine/engine.h"
 
 #include <assert.h>
+
+#include "logs/logs.h"
 
 static FILE* gLogFile = nullptr;
 
@@ -11,7 +12,7 @@ const char* eng_GetErrorMsg(const eng_Error err) {
             return msg;
 
     switch (err) {
-        #include "../include/engine_errors_codegen.inc"
+        #include "engine/engine_errors_codegen.inc"
         default:
             return "No such error was found";
     }

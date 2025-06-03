@@ -1,24 +1,23 @@
-#include "graphics.h"
+#include "graphics/graphics.hpp"
 
 #include <cstddef>
 #include <string>
 #include <vector>
 #include <iostream>
+#include <numbers>
 
-// #define GLM_ENABLE_EXPERIMENTAL
-#include "glm/fwd.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtc/type_ptr.hpp"
-#include "glm/gtx/string_cast.hpp"
-#include "glad/gl.h"
+#include <glm/fwd.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
+#include <glad/gl.h>
 
-#include "gas_structs.h"
+#include "common/gas_structs.h"
 
-#include "graphics_cfg.h"
-#include "graphics_defs.h"
-#include "graphics_log.h"
-#include "graphics_shaders.h"
-#include "graphics_box.h"
+#include "graphics/graphics_defs.hpp"
+#include "graphics/graphics_log.hpp"
+#include "graphics/graphics_shaders.hpp"
+#include "graphics/graphics_box.hpp"
 
 #include "debug/dbg.h"
 
@@ -88,11 +87,11 @@ void graph_TellAboutControls() {
 GraphShaders graph_CompileShaders() {
     // load shaders
     std::vector<std::string> file_names_arr;
-    file_names_arr.push_back(std::string("./graphics/shaders/main_frag_sh.frag"));
-    file_names_arr.push_back(std::string("./graphics/shaders/main_vert_sh.vert"));
+    file_names_arr.push_back(std::string("./source/graphics/shaders/main_frag_sh.frag"));
+    file_names_arr.push_back(std::string("./source/graphics/shaders/main_vert_sh.vert"));
 
-    file_names_arr.push_back(std::string("./graphics/shaders/box_frag_sh.frag"));
-    file_names_arr.push_back(std::string("./graphics/shaders/box_vert_sh.vert"));
+    file_names_arr.push_back(std::string("./source/graphics/shaders/box_frag_sh.frag"));
+    file_names_arr.push_back(std::string("./source/graphics/shaders/box_vert_sh.vert"));
 
     std::vector<std::string> shader_arr = graph_LoadShaders(file_names_arr);
     
@@ -184,7 +183,7 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
 
     glBufferData(GL_ARRAY_BUFFER, 
                 //  sizeof(kBox),
-                 box_vec.size() * sizeof(glm::vec3), 
+                 static_cast<GLsizeiptr>(box_vec.size() * sizeof(glm::vec3)), 
                  box_vec.data(), 
                  GL_DYNAMIC_DRAW); $ // gl copy to buffer
 
@@ -205,7 +204,7 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
     glBindVertexArray(VAO_box); $
         
     glEnableVertexAttribArray(0); $
-    glDrawArrays(GL_LINES, 0, box_vec.size()); $
+    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(box_vec.size())); $
     glDisableVertexAttribArray(0); $
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); $
@@ -263,7 +262,7 @@ static glm::mat4 graph_GetRotationMatrix() {
 static void graph_CreateCircle(std::vector<glm::vec3>* box) {
     assert(box != nullptr);
 
-    float angle_step = 2.0f * M_PI / kNLinesInCircle;
+    float angle_step = 2.0f * std::numbers::pi_v<float> / kNLinesInCircle;
 
     box->push_back(glm::vec3(-kScale, 0.0f, 1.0f * radius_global));
     for (size_t i = 1; i < kNLinesInCircle; i++) {
@@ -283,10 +282,11 @@ static void graph_FrameBufferSizeCallback(GLFWwindow* window, int width, int hei
     glViewport(0, 0, width, height);
 }
 
-static void graph_KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+static void graph_KeyboardCallback(GLFWwindow* window, int key, [[maybe_unused]] int scancode, [[maybe_unused]] int action, [[maybe_unused]] int mods) {
     switch (key) {
         case GLFW_KEY_Q:
-           glfwSetWindowShouldClose(window, GLFW_TRUE); 
+            glfwSetWindowShouldClose(window, GLFW_TRUE); 
+            break;
         case GLFW_KEY_Z:
             angle_vec.x++;
             break;

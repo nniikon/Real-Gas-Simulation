@@ -1,9 +1,10 @@
 #ifndef ENGINE_H_
 #define ENGINE_H_
+
 #include <stdio.h>
 
-#include "../../common/gas_structs.h"
-#include "../atoms_list/eng_atoms_list.h"
+#include "common/gas_structs.h"
+#include "engine/eng_atoms_list.h"
 
 const char* eng_GetErrorMsg(const eng_Error err);
 

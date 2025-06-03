@@ -1,9 +1,9 @@
-#include "graphics_log.h"
+#include "graphics/graphics_log.hpp"
 
 #include <cassert>
 
 // debug -----------------------------------------------------------------------
-__attribute__((unused))
+[[maybe_unused]]
 void GLLogError(const char* file_name, size_t line) {
     assert(file_name != nullptr);
 
@@ -13,8 +13,8 @@ void GLLogError(const char* file_name, size_t line) {
     }
 }
 
-void GLLogShaderError(GLId shader_id) {
-#ifdef GRAPHICS_DEBUG_SHADER
+void GLLogShaderError([[maybe_unused]] GLId shader_id) {
+#if defined (GRAPHICS_DEBUG_SHADER)
     int success = 0;
     char log[512];
     
@@ -23,10 +23,10 @@ void GLLogShaderError(GLId shader_id) {
         glGetShaderInfoLog(shader_id, sizeof(log), NULL, log); $
         fprintf(stderr, "# gl error: shader: %s\n", log); $
     }
-#endif // GRAPHICS_DEBUG
+#endif // GRAPHICS_DEBUG_SHADER
 }
 
-void GLLogLinkError(GLId shader_program) {
+void GLLogLinkError([[maybe_unused]] GLId shader_program) {
 #ifdef GRAPHICS_DEBUG_SHADER
     int success = 0;
     char log[512];
