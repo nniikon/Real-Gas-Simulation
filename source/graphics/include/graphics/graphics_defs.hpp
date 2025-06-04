@@ -1,6 +1,12 @@
-#ifndef GRAPHICS_DEFS_H_
-#define GRAPHICS_DEFS_H_
+#ifndef GRAPHICS_DEFS_HPP_
+#define GRAPHICS_DEFS_HPP_
 
-typedef unsigned int GLId;
+namespace gas {
+namespace grx {
 
-#endif // GRAPHICS_DEFS_H_
+using GLId = unsigned int;
+
+} // namespace grx
+} // namespace gas
+
+#endif // GRAPHICS_DEFS_HPP_

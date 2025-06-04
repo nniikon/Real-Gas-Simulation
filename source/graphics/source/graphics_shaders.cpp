@@ -7,7 +7,10 @@
 #include <sstream>
 #include <iostream>
 
-std::vector<std::string> graph_LoadShaders(std::vector<std::string> file_names_arr) {
+namespace gas {
+namespace grx {
+
+std::vector<std::string> LoadShaders(std::vector<std::string> file_names_arr) {
     std::vector<std::string> shader_arr;
 
     for (auto file_name: file_names_arr) {
@@ -23,3 +26,6 @@ std::vector<std::string> graph_LoadShaders(std::vector<std::string> file_names_a
 
     return shader_arr;
 }
+
+} // namespace grx
+} // namespace gas

@@ -1,24 +1,30 @@
 #include <iostream>
 #include <cstddef>
+#include <stdexcept>
 
 #include "logs/logs.hpp"
 #include "common/gas_structs.hpp"
 #include "engine/engine.hpp"
 #include "graphics/graphics.hpp"
 
-static const size_t kNOfAtoms = 3'000'000;
+static constexpr size_t kNOfAtoms = 3'000;
 float radius_global = 0.1f;
 
 int main(const int argc, const char** argv) {
-    GLFWwindow* window = graph_SetUpRender();
-    if (window == nullptr) {
-        std::cerr << "Unable to open window" << std::endl;
+    gas::grx::GraphicsContext cnt{};
+
+    gas::grx::WindowHandle wnd_handle{nullptr, gas::grx::WindowDeleter};
+
+    try {
+        wnd_handle = gas::grx::SetUpRender();
+    } catch (const std::runtime_error& err) {
+        std::cerr << err.what() << std::endl; 
         return -1;
     }
 
-    graph_TellAboutControls();
+    std::cout << gas::grx::TellAboutControls();
 
-    GraphShaders shaders = graph_CompileShaders();
+    gas::grx::GraphShaders shaders = gas::grx::CompileShaders();
 
     FILE* log_file = logOpenFile("engine_dump.html");
     if (log_file == nullptr) {
@@ -45,7 +51,7 @@ int main(const int argc, const char** argv) {
         return -1;
     }
 
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(wnd_handle.get())) {
         const float dtime = 0.01f; //FIXME
         eng_error = eng_Compute(&atom_list, dtime, radius_global, dump_mes);
         if (eng_error != ENG_ERR_NO) {
@@ -54,15 +60,13 @@ int main(const int argc, const char** argv) {
             return -1;
         }
 
-        Render(&atom, shaders);
+        gas::grx::Render(&atom, shaders);
 
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(wnd_handle.get());
         glfwPollEvents();
     }
 
     fclose(log_file);
-
-    glfwTerminate();
 
     return 0;
 }

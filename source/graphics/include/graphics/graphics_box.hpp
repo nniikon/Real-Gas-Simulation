@@ -1,13 +1,17 @@
-#ifndef GRAPHICS_BOX_H_
-#define GRAPHICS_BOX_H_
+#ifndef GRAPHICS_BOX_HPP_
+#define GRAPHICS_BOX_HPP_
 
 #include <cstddef>
 
 #include <glm/fwd.hpp>
+#include <glm/vec3.hpp>
 
-static const float kScale = 0.9f;
+namespace gas {
+namespace grx {
 
-static const glm::vec3 kBox[] = {
+constexpr inline float kScale = 0.9f;
+
+constexpr inline const glm::vec3 kBox[] = {
     // Front face
     {-kScale, -kScale,  kScale},
     { kScale, -kScale,  kScale},
@@ -84,6 +88,9 @@ static const glm::vec3 kBox[] = {
     // {-1, -1, 1},
 };
 
-static const size_t kNOfVertInBox = sizeof(kBox) / sizeof(*kBox);
+constexpr inline size_t kNOfVertInBox = sizeof(kBox) / sizeof(*kBox);
 
-#endif // GRAPHICS_BOX_H_
+} // namespace grx
+} // namespace gas
+
+#endif // GRAPHICS_BOX_HPP_

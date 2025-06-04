@@ -2,6 +2,11 @@
 
 #include <cassert>
 
+#include "graphics/graphics_cfg.hpp"
+
+namespace gas {
+namespace grx {
+
 // debug -----------------------------------------------------------------------
 [[maybe_unused]]
 void GLLogError(const char* file_name, size_t line) {
@@ -16,7 +21,7 @@ void GLLogError(const char* file_name, size_t line) {
 void GLLogShaderError([[maybe_unused]] GLId shader_id) {
 #if defined (GRAPHICS_DEBUG_SHADER)
     int success = 0;
-    char log[512];
+    static char log[512];
 
     glGetShaderiv(shader_id, GL_COMPILE_STATUS, &success); $
     if (!success) {
@@ -29,7 +34,7 @@ void GLLogShaderError([[maybe_unused]] GLId shader_id) {
 void GLLogLinkError([[maybe_unused]] GLId shader_program) {
 #ifdef GRAPHICS_DEBUG_SHADER
     int success = 0;
-    char log[512];
+    static char log[512];
 
     glGetProgramiv(shader_program, GL_LINK_STATUS, &success); $
     if (!success) {
@@ -38,3 +43,6 @@ void GLLogLinkError([[maybe_unused]] GLId shader_program) {
     }
 #endif // GRAPHICS_DEBUG
 }
+
+} // namespace grx
+} // namespace gas
