@@ -1,30 +1,28 @@
 #include "graphics/graphics.hpp"
 
-#include <GLFW/glfw3.h>
+#include <cassert>
 #include <cstddef>
 #include <string>
 #include <vector>
-#include <iostream>
 #include <numbers>
 #include <memory>
 #include <stdexcept>
+
+#include <glad/gl.h>
+#include <GLFW/glfw3.h>
 
 #include <glm/fwd.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
-#include <glad/gl.h>
 
 #include "common/gas_structs.hpp"
 
-#include "graphics/graphics_cfg.hpp"
-#include "graphics/graphics_defs.hpp"
-#include "graphics/graphics_log.hpp"
-#include "graphics/graphics_shaders.hpp"
-#include "graphics/graphics_box.hpp"
+#include "graphics/config.hpp"
+#include "graphics/gl_log.hpp"
+#include "graphics/shaders.hpp"
 
 extern float radius_global;
-
 namespace gas {
 namespace grx {
 
@@ -35,11 +33,38 @@ namespace {
 glm::ivec3 angle_vec(0, 0, 0);
 float scale_scene = 0.5f;
 
+constexpr float kScale = 0.9f;
+constexpr const glm::vec3 kBox[] = 
+// constexpr inline std::array<glm::vec3, 32> kBox = 
+{
+    // Front face
+    {-kScale, -kScale,  kScale}, { kScale, -kScale,  kScale},
+    {-kScale, -kScale,  kScale}, {-kScale,  kScale,  kScale},
+    { kScale,  kScale,  kScale}, { kScale, -kScale,  kScale},
+    { kScale,  kScale,  kScale}, {-kScale,  kScale,  kScale},
+    // Right face
+    { kScale, -kScale,  kScale}, { kScale,  kScale,  kScale},
+    { kScale,  kScale,  kScale}, { kScale,  kScale, -kScale},
+    { kScale,  kScale, -kScale}, { kScale, -kScale, -kScale},
+    { kScale, -kScale, -kScale}, { kScale, -kScale,  kScale},
+    // Left face
+    {-kScale, -kScale,  kScale}, {-kScale,  kScale,  kScale},
+    {-kScale,  kScale,  kScale}, {-kScale,  kScale, -kScale},
+    {-kScale,  kScale, -kScale}, {-kScale, -kScale, -kScale},
+    {-kScale, -kScale, -kScale}, {-kScale, -kScale,  kScale},
+    // Back face
+    {-kScale,  kScale, -kScale}, { kScale,  kScale, -kScale},
+    { kScale,  kScale, -kScale}, { kScale, -kScale, -kScale},
+    { kScale, -kScale, -kScale}, {-kScale, -kScale, -kScale},
+    {-kScale, -kScale, -kScale}, {-kScale,  kScale, -kScale},
+};
+
+constexpr size_t kNOfVertInBox = sizeof(kBox) / sizeof(*kBox);
+
 // callbacks
 void FrameBufferSizeCallback(GLFWwindow* window, int width, int height);
 void KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 glm::mat4 GetRotationMatrix();
-GLId CompileProgram(const std::string& vert_shader, const std::string& frag_shader);
 void CreateCircle(std::vector<glm::vec3>* box);
 
 } // namespace 
@@ -51,7 +76,7 @@ WindowHandle SetUpRender() {
     static_assert(sizeof(glm::vec3) == sizeof(float) * 3, "is glm stupid?");
 
     auto window = glfwCreateWindow(
-        kWindowHeight,                           
+        kWindowWidth,                           
         kWindowHeight,
         kWindowTitle.data(),
         nullptr,
@@ -95,45 +120,57 @@ std::string TellAboutControls() {
     return controls;
 }
 
-GraphShaders CompileShaders() {
-    // load shaders
-    std::vector<std::string> file_names_arr;
-    file_names_arr.emplace_back("./source/graphics/shaders/main_frag_sh.frag");
-    file_names_arr.emplace_back("./source/graphics/shaders/main_vert_sh.vert");
+ShaderProgram GetMainShaderProgram() {
+    Shader vertex{Shader::Type::kVertex};
+    vertex.Compile(
+        LoadShader(
+            "./source/graphics/shaders/main_vert_sh.vert"
+        )
+    );
+    Shader fragment{Shader::Type::kFragment};
+    fragment.Compile(
+        LoadShader(
+            "./source/graphics/shaders/main_frag_sh.frag"
+        )
+    );
 
-    file_names_arr.emplace_back("./source/graphics/shaders/box_frag_sh.frag");
-    file_names_arr.emplace_back("./source/graphics/shaders/box_vert_sh.vert");
+    ShaderProgram main_program{};
+    main_program.AttachAndLink(vertex, fragment);
 
-    std::vector<std::string> shader_arr = LoadShaders(file_names_arr);
+    return main_program;
+}
 
-    constexpr size_t main_frag_ind = 0;
-    constexpr size_t main_vert_ind = 1;
-    constexpr size_t box_frag_ind  = 2;
-    constexpr size_t box_vert_ind  = 3;
+ShaderProgram GetBoxShaderProgram() {
+    Shader vertex{Shader::Type::kVertex};
+    vertex.Compile(
+        LoadShader(
+            "./source/graphics/shaders/box_vert_sh.vert"
+        )
+    );
+    Shader fragment{Shader::Type::kFragment};
+    fragment.Compile(
+        LoadShader(
+            "./source/graphics/shaders/box_frag_sh.frag"
+        )
+    );
 
-    auto&& main_frag_shader = shader_arr[main_frag_ind];
-    auto&& main_vert_shader = shader_arr[main_vert_ind];
-    auto&& box_frag_shader  = shader_arr[box_frag_ind];
-    auto&& box_vert_shader  = shader_arr[box_vert_ind];
+    ShaderProgram box_program{};
+    box_program.AttachAndLink(vertex, fragment);
 
-    GLId main_shader_program_id = CompileProgram(main_vert_shader, main_frag_shader);
-    GLId box_shader_program_id = CompileProgram(box_vert_shader, box_frag_shader);
-
-    return GraphShaders{main_shader_program_id, box_shader_program_id};
+    return box_program;
 }
 
 // render
-void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
+void Render(gas_Atoms* atoms, const ShaderProgram& main_program, const ShaderProgram& box_program) {
     assert(atoms != nullptr);
+    assert(main_program.IsLinked());
+    assert(box_program.IsLinked());
 
     glm::mat4 rotate_mat = GetRotationMatrix();
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); GlDbg();
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); GlDbg();
-
     // render atoms ------------------------------------------------------------
-    GLId VAO_atoms{};
-    GLId VBO_atoms{};
+    GLuint VAO_atoms{};
+    GLuint VBO_atoms{};
 
     glGenVertexArrays(1, &VAO_atoms); GlDbg(); // allocate 1 vertex array with id VAO
     glGenBuffers(1, &VBO_atoms); GlDbg(); // gl allocates 1 buffer with id VBO
@@ -143,7 +180,7 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
     glBindBuffer(GL_ARRAY_BUFFER, VBO_atoms); GlDbg(); // vbo now is associated with array buffer
     glBufferData(
         GL_ARRAY_BUFFER,
-        (GLsizeiptr)(atoms->n_coords * sizeof(glm::vec3)),
+        static_cast<GLsizeiptr>(atoms->n_coords * sizeof(glm::vec3)),
         atoms->coords,
         GL_DYNAMIC_DRAW
     ); GlDbg(); // gl copy to buffer
@@ -161,10 +198,10 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
     glBindBuffer(GL_ARRAY_BUFFER, 0); GlDbg();
     glBindVertexArray(0); GlDbg();
 
-    glUseProgram(shader_ids.main_shader_program_id); GlDbg();
+    main_program.Use();
 
     int main_rotate_id = glGetUniformLocation(
-        shader_ids.main_shader_program_id, 
+        main_program(), 
         "rotate_mat"
     ); GlDbg();
     glUniformMatrix4fv(
@@ -175,7 +212,7 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
     ); GlDbg();
 
     int main_scale_id = glGetUniformLocation(
-        shader_ids.main_shader_program_id, 
+        main_program(), 
         "scale_scene"
     ); GlDbg();
     glUniform1f(main_scale_id, scale_scene); GlDbg();
@@ -202,8 +239,8 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
     }
     CreateCircle(&box_vec);
 
-    GLId VAO_box;
-    GLId VBO_box;
+    GLuint VAO_box;
+    GLuint VBO_box;
 
     glGenVertexArrays(1, &VAO_box); GlDbg(); // allocate 1 vertex array with id VAO
     glGenBuffers(1, &VBO_box); GlDbg(); // gl allocates 1 buffer with id VBO
@@ -233,16 +270,16 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
     glBindBuffer(GL_ARRAY_BUFFER, 0); GlDbg();
     glBindVertexArray(0); GlDbg();
 
-    glUseProgram(shader_ids.box_shader_program_id); GlDbg();
+    box_program.Use();
 
     int box_rotate_id = glGetUniformLocation(
-        shader_ids.box_shader_program_id, 
+        box_program(), 
         "rotate_mat"
     ); GlDbg();
     glUniformMatrix4fv(box_rotate_id, 1, GL_FALSE, glm::value_ptr(rotate_mat)); GlDbg();
 
     int box_scale_id = glad_glGetUniformLocation(
-        shader_ids.box_shader_program_id, 
+        box_program(), 
         "scale_scene"
     ); GlDbg();
     glUniform1f(box_scale_id, scale_scene); GlDbg();
@@ -265,34 +302,6 @@ void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
 // static ----------------------------------------------------------------------
 
 namespace {
-
-GLId CompileProgram(const std::string& vert_shader, const std::string& frag_shader) {
-    auto&& vert_cstr = vert_shader.c_str();
-    auto&& frag_cstr = frag_shader.c_str();
-
-    GLId vertex_shader_id = glCreateShader(GL_VERTEX_SHADER); GlDbg();
-    glShaderSource(vertex_shader_id, 1, &vert_cstr, NULL); GlDbg();
-    glCompileShader(vertex_shader_id); GlDbg();
-    GLLogShaderError(vertex_shader_id); GlDbg();
-
-    GLId fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER); GlDbg();
-    // 1 is the number of strings of source code,
-    // NULL means that strings are null terminated
-    glShaderSource(fragment_shader_id, 1, &frag_cstr, NULL); GlDbg();
-    glCompileShader(fragment_shader_id); GlDbg();
-    GLLogShaderError(fragment_shader_id); GlDbg();
-
-    GLId shader_prog_id = glCreateProgram(); GlDbg();
-    glAttachShader(shader_prog_id, vertex_shader_id); GlDbg();
-    glAttachShader(shader_prog_id, fragment_shader_id); GlDbg();
-    glLinkProgram(shader_prog_id); GlDbg();
-    GLLogLinkError(shader_prog_id); GlDbg();
-
-    glDeleteShader(vertex_shader_id); GlDbg();
-    glDeleteShader(fragment_shader_id); GlDbg();
-
-    return shader_prog_id;
-}
 
 glm::mat4 GetRotationMatrix() {
     glm::mat4 rotate_mat_x = glm::mat4(1.0f);

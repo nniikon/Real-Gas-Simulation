@@ -1,5 +1,5 @@
-#ifndef GRAPHICS_CFG_HPP_
-#define GRAPHICS_CFG_HPP_
+#ifndef CONFIG_HPP_
+#define CONFIG_HPP_
 
 #include <cstddef>
 #include <string_view>
@@ -21,6 +21,7 @@ constexpr inline int kWindowWidth = 1024;
 constexpr inline int kWindowHeight = 1024;
 constexpr inline 
     std::string_view kWindowTitle = "gas experiment";
+
 constexpr inline float kPointSize = 2.0f;
 constexpr inline float kLineWidth = 2.5f;
 constexpr inline size_t kNLinesInCircle = 32;
@@ -28,4 +29,4 @@ constexpr inline size_t kNLinesInCircle = 32;
 } // namespace grx
 } // namespace gas
 
-#endif // GRAPHICS_CFG_HPP_
+#endif // CONFIG_HPP_

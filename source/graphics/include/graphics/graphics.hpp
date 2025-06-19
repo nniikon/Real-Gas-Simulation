@@ -11,8 +11,8 @@
 
 #include "common/gas_structs.hpp"
 
-#include "graphics/graphics_cfg.hpp"
-#include "graphics/graphics_defs.hpp"
+#include "graphics/config.hpp"
+#include "graphics/shaders.hpp"
 
 namespace gas {
 namespace grx {
@@ -45,11 +45,6 @@ class GraphicsContext {
     }
 };
 
-struct GraphShaders {
-    GLId main_shader_program_id;
-    GLId box_shader_program_id;
-};
-
 inline void WindowDeleter(GLFWwindow* window) {
     // std::cerr << "window deleter called" << std::endl;
     if (window == nullptr) {
@@ -69,11 +64,15 @@ WindowHandle SetUpRender();
 [[nodiscard]]
 std::string TellAboutControls();
 
-// returns shader program handle
+// main program
 [[nodiscard]]
-GraphShaders CompileShaders();
+ShaderProgram GetMainShaderProgram();
 
-void Render(gas_Atoms* atoms, const GraphShaders& shader_ids);
+// box program 
+[[nodiscard]]
+ShaderProgram GetBoxShaderProgram();
+
+void Render(gas_Atoms* atoms, const ShaderProgram& main_program, const ShaderProgram& box_program);
 
 } // namespace grx
 } // namespace gas

@@ -3,11 +3,15 @@
 #include <stdexcept>
 
 #include "logs/logs.hpp"
-#include "common/gas_structs.hpp"
-#include "engine/engine.hpp"
-#include "graphics/graphics.hpp"
 
-static constexpr size_t kNOfAtoms = 3'000;
+#include "common/gas_structs.hpp"
+
+#include "engine/engine.hpp"
+
+#include "graphics/graphics.hpp"
+#include "graphics/gl_log.hpp"
+
+static constexpr size_t kNOfAtoms = 30'000;
 float radius_global = 0.1f;
 
 int main(const int argc, const char** argv) {
@@ -24,7 +28,8 @@ int main(const int argc, const char** argv) {
 
     std::cout << gas::grx::TellAboutControls();
 
-    gas::grx::GraphShaders shaders = gas::grx::CompileShaders();
+    auto main_program = gas::grx::GetMainShaderProgram();
+    auto box_program = gas::grx::GetBoxShaderProgram();
 
     FILE* log_file = logOpenFile("engine_dump.html");
     if (log_file == nullptr) {
@@ -60,8 +65,13 @@ int main(const int argc, const char** argv) {
             return -1;
         }
 
-        gas::grx::Render(&atom, shaders);
+        // frame prologue
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f); gas::grx::GlDbg();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); gas::grx::GlDbg();
 
+        gas::grx::Render(&atom, main_program, box_program);
+
+        // frame epilogue
         glfwSwapBuffers(wnd_handle.get());
         glfwPollEvents();
     }
