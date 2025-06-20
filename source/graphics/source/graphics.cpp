@@ -135,30 +135,30 @@ ShaderProgram GetBoxShaderProgram() {
     );
 }
 
+size_t BoxVertSize() {
+    return kNOfVertInBox + kNLinesInCircle * 2;
+}
+
 // render
-void Render(gas_Atoms* atoms, const ShaderProgram& main_program, const ShaderProgram& box_program) {
+void RenderEngine::Render(gas_Atoms* atoms) {
     assert(atoms != nullptr);
-    assert(main_program.IsLinked());
-    assert(box_program.IsLinked());
+    assert(main_program_.IsLinked());
+    assert(box_program_.IsLinked());
 
     glm::mat4 rotate_mat = GetRotationMatrix();
 
     // render atoms ------------------------------------------------------------
     
-    VertexArray main_vao{};
-    VertexBuffer main_vbo{VertexBuffer::Type::kArrayBuffer};
+    main_vao_.Bind();
+    main_vbo_.Bind();
 
-    main_vao.Bind();
-    main_vbo.Bind();
-
-    main_vbo.AllocateAndCopy(
+    main_vbo_.Copy(
         atoms->n_coords * sizeof(glm::vec3), 
-        atoms->coords, 
-        GL_DYNAMIC_DRAW
+        atoms->coords
     );
 
-    main_vao.AddAndEnableAttribute(
-        main_program, 
+    main_vao_.AddAndEnableAttribute(
+        main_program_, 
         "aPos", 
         kNDimensions, 
         GL_FLOAT, 
@@ -167,16 +167,16 @@ void Render(gas_Atoms* atoms, const ShaderProgram& main_program, const ShaderPro
         nullptr // zero offset
     );
 
-    main_program.Use();
+    main_program_.Use();
 
-    main_program.Uniform("rotate_mat") = rotate_mat;
-    main_program.Uniform("scale_scene") = scale_scene;
+    main_program_.Uniform("rotate_mat") = rotate_mat;
+    main_program_.Uniform("scale_scene") = scale_scene;
 
     glDrawArrays(GL_POINTS, 0, (GLsizei)atoms->n_coords); GlDbg(); 
     // NOTE maybe disable
     // glDisableVertexAttribArray(0); GlDbg();
-    main_vbo.Unbind();
-    main_vao.Unbind();
+    main_vbo_.Unbind();
+    main_vao_.Unbind();
 
     // render atoms ------------------------------------------------------------
 
@@ -188,20 +188,16 @@ void Render(gas_Atoms* atoms, const ShaderProgram& main_program, const ShaderPro
     }
     CreateCircle(&box_vec);
 
-    VertexArray box_vao{};
-    VertexBuffer box_vbo{VertexBuffer::Type::kArrayBuffer};
-    
-    box_vao.Bind();
-    box_vbo.Bind();
+    box_vao_.Bind();
+    box_vbo_.Bind();
 
-    box_vbo.AllocateAndCopy(
+    box_vbo_.Copy(
         box_vec.size() * sizeof(glm::vec3), 
-        box_vec.data(), 
-        GL_DYNAMIC_DRAW
+        box_vec.data()
     );
 
-    box_vao.AddAndEnableAttribute(
-        box_program, 
+    box_vao_.AddAndEnableAttribute(
+        box_program_, 
         "aPos", 
         kNDimensions, 
         GL_FLOAT, 
@@ -210,17 +206,17 @@ void Render(gas_Atoms* atoms, const ShaderProgram& main_program, const ShaderPro
         nullptr // zero offset
     );
 
-    box_program.Use();
+    box_program_.Use();
 
-    box_program.Uniform("rotate_mat") = rotate_mat;
-    box_program.Uniform("scale_scene") = scale_scene;
+    box_program_.Uniform("rotate_mat") = rotate_mat;
+    box_program_.Uniform("scale_scene") = scale_scene;
 
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(box_vec.size())); GlDbg();
     // NOTE maybe?
     // glDisableVertexAttribArray(0); GlDbg();
 
-    box_vbo.Unbind();
-    box_vao.Unbind();
+    box_vbo_.Unbind();
+    box_vao_.Unbind();
 
     // render box --------------------------------------------------------------
 }

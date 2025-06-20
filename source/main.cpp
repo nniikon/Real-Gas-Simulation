@@ -17,19 +17,8 @@ float radius_global = 0.1f;
 int main(const int argc, const char** argv) {
     gas::grx::GraphicsContext cnt{};
 
-    gas::grx::WindowHandle wnd_handle{nullptr, gas::grx::WindowDeleter};
-
-    try {
-        wnd_handle = gas::grx::SetUpRender();
-    } catch (const std::runtime_error& err) {
-        std::cerr << err.what() << std::endl; 
-        return -1;
-    }
-
     std::cout << gas::grx::TellAboutControls();
-
-    auto main_program = gas::grx::GetMainShaderProgram();
-    auto box_program = gas::grx::GetBoxShaderProgram();
+    gas::grx::RenderEngine render{kNOfAtoms, gas::grx::BoxVertSize()};
 
     FILE* log_file = logOpenFile("engine_dump.html");
     if (log_file == nullptr) {
@@ -56,7 +45,7 @@ int main(const int argc, const char** argv) {
         return -1;
     }
 
-    while (!glfwWindowShouldClose(wnd_handle.get())) {
+    while (!render.IsFinished()) {
         const float dtime = 0.01f; //FIXME
         eng_error = eng_Compute(&atom_list, dtime, radius_global, dump_mes);
         if (eng_error != ENG_ERR_NO) {
@@ -65,15 +54,9 @@ int main(const int argc, const char** argv) {
             return -1;
         }
 
-        // frame prologue
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f); gas::grx::GlDbg();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); gas::grx::GlDbg();
-
-        gas::grx::Render(&atom, main_program, box_program);
-
-        // frame epilogue
-        glfwSwapBuffers(wnd_handle.get());
-        glfwPollEvents();
+        render.Prologue(); // frame prologue
+        render.Render(&atom);
+        render.Epilogue(); // frame epilogue
     }
 
     fclose(log_file);
