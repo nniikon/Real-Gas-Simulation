@@ -11,6 +11,9 @@
 
 #include <glad/gl.h>
 
+#include "glm/gtc/type_ptr.hpp"
+#include "helpers/helpers.hpp"
+
 #include "graphics/gl_log.hpp"
 
 namespace gas {
@@ -18,20 +21,14 @@ namespace grx {
 
 class Shader {
   public:
-    enum class Type {
-        kFragment,
-        kVertex,
-        kInvalid,
+    enum class Type : GLenum {
+        kFragment = GL_FRAGMENT_SHADER,
+        kVertex = GL_VERTEX_SHADER,
+        kInvalid = GL_INVALID_ENUM,
     };
      
     static GLenum ShaderType(Type shader_type) {
-        switch (shader_type) {
-            case Type::kFragment: return GL_FRAGMENT_SHADER;
-            case Type::kVertex: return GL_VERTEX_SHADER;
-            case Type::kInvalid: 
-            default: 
-                throw std::runtime_error{"invalid shader type conversion"};
-        }
+        return hlp::FromEnum(shader_type);
     }
   private:
     Type shader_type_;
@@ -125,6 +122,25 @@ class Shader {
 
 // Program object provide mechanism to link(connect) shaders throught attach and link calls
 class ShaderProgram {
+  public:
+    class UniformProxy {
+      private:
+        GLint uniform_loc_;
+      public:
+        UniformProxy(const ShaderProgram& program, const std::string& name) {
+            uniform_loc_ = glGetUniformLocation(program(), name.c_str()); GlDbg();
+        }
+
+        UniformProxy& operator=(float value) {
+            glUniform1f(uniform_loc_, value); GlDbg();
+            return *this;
+        }
+
+        UniformProxy& operator=(const glm::mat4& mat) {
+            glUniformMatrix4fv(uniform_loc_, 1, GL_FALSE, glm::value_ptr(mat)); GlDbg();
+            return *this;
+        }
+    };
   private:
     GLuint program_obj_;
     bool is_linked_;
@@ -211,11 +227,31 @@ class ShaderProgram {
         glUseProgram(program_obj_); GlDbg();
     }
 
+    UniformProxy Uniform(const std::string& name) const {
+        return UniformProxy{*this, name};
+    }
+
     GLuint operator()() const { return program_obj_; }
     bool IsLinked() const { return is_linked_; }
 };
 
 std::string LoadShader(const std::filesystem::path& shader_path);
+
+inline ShaderProgram ProgramFromPath(
+    const std::filesystem::path& vert_path, 
+    const std::filesystem::path& frag_path
+) {
+    Shader vertex{Shader::Type::kVertex};
+    vertex.Compile(LoadShader(vert_path));
+
+    Shader fragment{Shader::Type::kFragment};
+    fragment.Compile(LoadShader(frag_path));
+
+    ShaderProgram main_program{};
+    main_program.AttachAndLink(vertex, fragment);
+
+    return main_program;
+}
 
 } // namespace grx
 } // namespace gas

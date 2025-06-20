@@ -21,6 +21,7 @@
 #include "graphics/config.hpp"
 #include "graphics/gl_log.hpp"
 #include "graphics/shaders.hpp"
+#include "graphics/vertex.hpp"
 
 extern float radius_global;
 namespace gas {
@@ -121,43 +122,17 @@ std::string TellAboutControls() {
 }
 
 ShaderProgram GetMainShaderProgram() {
-    Shader vertex{Shader::Type::kVertex};
-    vertex.Compile(
-        LoadShader(
-            "./source/graphics/shaders/main_vert_sh.vert"
-        )
+    return ProgramFromPath(
+        "./source/graphics/shaders/main_vert_sh.vert",
+        "./source/graphics/shaders/main_frag_sh.frag"
     );
-    Shader fragment{Shader::Type::kFragment};
-    fragment.Compile(
-        LoadShader(
-            "./source/graphics/shaders/main_frag_sh.frag"
-        )
-    );
-
-    ShaderProgram main_program{};
-    main_program.AttachAndLink(vertex, fragment);
-
-    return main_program;
 }
 
 ShaderProgram GetBoxShaderProgram() {
-    Shader vertex{Shader::Type::kVertex};
-    vertex.Compile(
-        LoadShader(
-            "./source/graphics/shaders/box_vert_sh.vert"
-        )
+    return ProgramFromPath(
+        "./source/graphics/shaders/box_vert_sh.vert",
+        "./source/graphics/shaders/box_frag_sh.frag"
     );
-    Shader fragment{Shader::Type::kFragment};
-    fragment.Compile(
-        LoadShader(
-            "./source/graphics/shaders/box_frag_sh.frag"
-        )
-    );
-
-    ShaderProgram box_program{};
-    box_program.AttachAndLink(vertex, fragment);
-
-    return box_program;
 }
 
 // render
@@ -169,66 +144,40 @@ void Render(gas_Atoms* atoms, const ShaderProgram& main_program, const ShaderPro
     glm::mat4 rotate_mat = GetRotationMatrix();
 
     // render atoms ------------------------------------------------------------
-    GLuint VAO_atoms{};
-    GLuint VBO_atoms{};
+    
+    VertexArray main_vao{};
+    VertexBuffer main_vbo{VertexBuffer::Type::kArrayBuffer};
 
-    glGenVertexArrays(1, &VAO_atoms); GlDbg(); // allocate 1 vertex array with id VAO
-    glGenBuffers(1, &VBO_atoms); GlDbg(); // gl allocates 1 buffer with id VBO
+    main_vao.Bind();
+    main_vbo.Bind();
 
-    glBindVertexArray(VAO_atoms); GlDbg();
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_atoms); GlDbg(); // vbo now is associated with array buffer
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        static_cast<GLsizeiptr>(atoms->n_coords * sizeof(glm::vec3)),
-        atoms->coords,
+    main_vbo.AllocateAndCopy(
+        atoms->n_coords * sizeof(glm::vec3), 
+        atoms->coords, 
         GL_DYNAMIC_DRAW
-    ); GlDbg(); // gl copy to buffer
+    );
 
-    // why 0?
-    glVertexAttribPointer(
-        0, 
+    main_vao.AddAndEnableAttribute(
+        main_program, 
+        "aPos", 
         kNDimensions, 
         GL_FLOAT, 
         GL_FALSE, 
         sizeof(glm::vec3), 
-        nullptr
-    ); GlDbg();
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0); GlDbg();
-    glBindVertexArray(0); GlDbg();
+        nullptr // zero offset
+    );
 
     main_program.Use();
 
-    int main_rotate_id = glGetUniformLocation(
-        main_program(), 
-        "rotate_mat"
-    ); GlDbg();
-    glUniformMatrix4fv(
-        main_rotate_id, 
-        1, 
-        GL_FALSE, 
-        glm::value_ptr(rotate_mat)
-    ); GlDbg();
+    main_program.Uniform("rotate_mat") = rotate_mat;
+    main_program.Uniform("scale_scene") = scale_scene;
 
-    int main_scale_id = glGetUniformLocation(
-        main_program(), 
-        "scale_scene"
-    ); GlDbg();
-    glUniform1f(main_scale_id, scale_scene); GlDbg();
+    glDrawArrays(GL_POINTS, 0, (GLsizei)atoms->n_coords); GlDbg(); 
+    // NOTE maybe disable
+    // glDisableVertexAttribArray(0); GlDbg();
+    main_vbo.Unbind();
+    main_vao.Unbind();
 
-    glBindVertexArray(VAO_atoms); GlDbg();
-
-    glEnableVertexAttribArray(0); GlDbg();
-    glDrawArrays(GL_POINTS, 0, (GLsizei)atoms->n_coords); GlDbg();
-    glDisableVertexAttribArray(0); GlDbg();
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0); GlDbg();
-    glBindVertexArray(0); GlDbg();
-
-    // Delete vertex array and buffer for atoms
-    glDeleteBuffers(1, &VBO_atoms); GlDbg();
-    glDeleteVertexArrays(1, &VAO_atoms); GlDbg();
     // render atoms ------------------------------------------------------------
 
     // render box --------------------------------------------------------------
@@ -239,63 +188,40 @@ void Render(gas_Atoms* atoms, const ShaderProgram& main_program, const ShaderPro
     }
     CreateCircle(&box_vec);
 
-    GLuint VAO_box;
-    GLuint VBO_box;
+    VertexArray box_vao{};
+    VertexBuffer box_vbo{VertexBuffer::Type::kArrayBuffer};
+    
+    box_vao.Bind();
+    box_vbo.Bind();
 
-    glGenVertexArrays(1, &VAO_box); GlDbg(); // allocate 1 vertex array with id VAO
-    glGenBuffers(1, &VBO_box); GlDbg(); // gl allocates 1 buffer with id VBO
-
-    glBindVertexArray(VAO_box); GlDbg();
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_box); GlDbg(); // vbo now is associated with array buffer
-
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        //  sizeof(kBox),
-        static_cast<GLsizeiptr>(box_vec.size() * sizeof(glm::vec3)),
-        box_vec.data(),
+    box_vbo.AllocateAndCopy(
+        box_vec.size() * sizeof(glm::vec3), 
+        box_vec.data(), 
         GL_DYNAMIC_DRAW
-    ); GlDbg(); // gl copy to buffer
+    );
 
-    // why 0?
-    glVertexAttribPointer(
-        0, 
+    box_vao.AddAndEnableAttribute(
+        box_program, 
+        "aPos", 
         kNDimensions, 
         GL_FLOAT, 
         GL_FALSE, 
         sizeof(glm::vec3), 
-        nullptr
-    ); GlDbg();
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0); GlDbg();
-    glBindVertexArray(0); GlDbg();
+        nullptr // zero offset
+    );
 
     box_program.Use();
 
-    int box_rotate_id = glGetUniformLocation(
-        box_program(), 
-        "rotate_mat"
-    ); GlDbg();
-    glUniformMatrix4fv(box_rotate_id, 1, GL_FALSE, glm::value_ptr(rotate_mat)); GlDbg();
+    box_program.Uniform("rotate_mat") = rotate_mat;
+    box_program.Uniform("scale_scene") = scale_scene;
 
-    int box_scale_id = glad_glGetUniformLocation(
-        box_program(), 
-        "scale_scene"
-    ); GlDbg();
-    glUniform1f(box_scale_id, scale_scene); GlDbg();
-
-    glBindVertexArray(VAO_box); GlDbg();
-
-    glEnableVertexAttribArray(0); GlDbg();
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(box_vec.size())); GlDbg();
-    glDisableVertexAttribArray(0); GlDbg();
+    // NOTE maybe?
+    // glDisableVertexAttribArray(0); GlDbg();
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0); GlDbg();
-    glBindVertexArray(0); GlDbg();
+    box_vbo.Unbind();
+    box_vao.Unbind();
 
-    // Delete vertex array and buffer for box
-    glDeleteBuffers(1, &VBO_box); GlDbg();
-    glDeleteVertexArrays(1, &VAO_box); GlDbg();
     // render box --------------------------------------------------------------
 }
 
