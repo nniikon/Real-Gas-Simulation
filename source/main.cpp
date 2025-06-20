@@ -1,24 +1,24 @@
 #include <iostream>
 #include <cstddef>
+#include <stdexcept>
 
 #include "logs/logs.hpp"
-#include "common/gas_structs.hpp"
-#include "engine/engine.hpp"
-#include "graphics/graphics.hpp"
 
-static const size_t kNOfAtoms = 3'000'000;
+#include "common/gas_structs.hpp"
+
+#include "engine/engine.hpp"
+
+#include "graphics/graphics.hpp"
+#include "graphics/gl_log.hpp"
+
+static constexpr size_t kNOfAtoms = 30'000;
 float radius_global = 0.1f;
 
 int main(const int argc, const char** argv) {
-    GLFWwindow* window = graph_SetUpRender();
-    if (window == nullptr) {
-        std::cerr << "Unable to open window" << std::endl;
-        return -1;
-    }
+    gas::grx::GraphicsContext cnt{};
 
-    graph_TellAboutControls();
-
-    GraphShaders shaders = graph_CompileShaders();
+    std::cout << gas::grx::TellAboutControls();
+    gas::grx::RenderEngine render{kNOfAtoms, gas::grx::BoxVertSize()};
 
     FILE* log_file = logOpenFile("engine_dump.html");
     if (log_file == nullptr) {
@@ -45,7 +45,7 @@ int main(const int argc, const char** argv) {
         return -1;
     }
 
-    while (!glfwWindowShouldClose(window)) {
+    while (!render.IsFinished()) {
         const float dtime = 0.01f; //FIXME
         eng_error = eng_Compute(&atom_list, dtime, radius_global, dump_mes);
         if (eng_error != ENG_ERR_NO) {
@@ -54,15 +54,12 @@ int main(const int argc, const char** argv) {
             return -1;
         }
 
-        Render(&atom, shaders);
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        render.Prologue(); // frame prologue
+        render.Render(&atom);
+        render.Epilogue(); // frame epilogue
     }
 
     fclose(log_file);
-
-    glfwTerminate();
 
     return 0;
 }
