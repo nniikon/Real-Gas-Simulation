@@ -1,252 +1,231 @@
 #include "graphics/graphics.hpp"
 
+#include <cassert>
 #include <cstddef>
 #include <string>
 #include <vector>
-#include <iostream>
 #include <numbers>
+#include <memory>
+#include <stdexcept>
+
+#include <glad/gl.h>
+#include <GLFW/glfw3.h>
 
 #include <glm/fwd.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
-#include <glad/gl.h>
 
 #include "common/gas_structs.hpp"
 
-#include "graphics/graphics_defs.hpp"
-#include "graphics/graphics_log.hpp"
-#include "graphics/graphics_shaders.hpp"
-#include "graphics/graphics_box.hpp"
+#include "graphics/config.hpp"
+#include "graphics/gl_log.hpp"
+#include "graphics/shaders.hpp"
+#include "graphics/vertex.hpp"
 
-#include "debug/dbg.hpp"
+extern float radius_global;
+namespace gas {
+namespace grx {
 
 // static ----------------------------------------------------------------------
 
-static glm::ivec3 angle_vec(0, 0, 0);
-static float scale_scene = 0.5f;
-extern float radius_global;
+namespace {
+
+glm::ivec3 angle_vec(0, 0, 0);
+float scale_scene = 0.5f;
+
+constexpr float kScale = 0.9f;
+constexpr const glm::vec3 kBox[] = 
+// constexpr inline std::array<glm::vec3, 32> kBox = 
+{
+    // Front face
+    {-kScale, -kScale,  kScale}, { kScale, -kScale,  kScale},
+    {-kScale, -kScale,  kScale}, {-kScale,  kScale,  kScale},
+    { kScale,  kScale,  kScale}, { kScale, -kScale,  kScale},
+    { kScale,  kScale,  kScale}, {-kScale,  kScale,  kScale},
+    // Right face
+    { kScale, -kScale,  kScale}, { kScale,  kScale,  kScale},
+    { kScale,  kScale,  kScale}, { kScale,  kScale, -kScale},
+    { kScale,  kScale, -kScale}, { kScale, -kScale, -kScale},
+    { kScale, -kScale, -kScale}, { kScale, -kScale,  kScale},
+    // Left face
+    {-kScale, -kScale,  kScale}, {-kScale,  kScale,  kScale},
+    {-kScale,  kScale,  kScale}, {-kScale,  kScale, -kScale},
+    {-kScale,  kScale, -kScale}, {-kScale, -kScale, -kScale},
+    {-kScale, -kScale, -kScale}, {-kScale, -kScale,  kScale},
+    // Back face
+    {-kScale,  kScale, -kScale}, { kScale,  kScale, -kScale},
+    { kScale,  kScale, -kScale}, { kScale, -kScale, -kScale},
+    { kScale, -kScale, -kScale}, {-kScale, -kScale, -kScale},
+    {-kScale, -kScale, -kScale}, {-kScale,  kScale, -kScale},
+};
+
+constexpr size_t kNOfVertInBox = sizeof(kBox) / sizeof(*kBox);
 
 // callbacks
-static void graph_FrameBufferSizeCallback(GLFWwindow* window, int width, int height);
-static void graph_KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-static glm::mat4 graph_GetRotationMatrix();
-static GLId graph_CompileProgram(const char* vert_shader, const char* frag_shader);
-static void graph_CreateCircle(std::vector<glm::vec3>* box);
+void FrameBufferSizeCallback(GLFWwindow* window, int width, int height);
+void KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+glm::mat4 GetRotationMatrix();
+void CreateCircle(std::vector<glm::vec3>* box);
+
+} // namespace 
 
 // global ----------------------------------------------------------------------
+
 // setup
-GLFWwindow* graph_SetUpRender() {
+WindowHandle SetUpRender() {
     static_assert(sizeof(glm::vec3) == sizeof(float) * 3, "is glm stupid?");
 
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, kOpenGLMajorVersion);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, kOpenGLMinorVersion);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    auto window = glfwCreateWindow(
+        kWindowWidth,                           
+        kWindowHeight,
+        kWindowTitle.data(),
+        nullptr,
+        nullptr
+    );
 
-    GLFWwindow* window = glfwCreateWindow(graph_kWindowHeight,
-                                          graph_kWindowHeight,
-                                          graph_kWindowTitle,
-                                          NULL,
-                                          NULL);
     if (window == nullptr) {
-        glfwTerminate();
-        return nullptr;
+        throw std::runtime_error{"cant open window"};
     }
 
-    glfwMakeContextCurrent(window);
+    WindowHandle wnd_handle{window, &WindowDeleter};
+
+    glfwMakeContextCurrent(wnd_handle.get());
 
     if (!gladLoadGL(glfwGetProcAddress)) {
-        glfwTerminate();
-        return nullptr;
+        throw std::runtime_error{"cant load OpenGL"};
     }
 
-    glfwSetFramebufferSizeCallback(window, graph_FrameBufferSizeCallback);
-    glfwSetKeyCallback(window, graph_KeyboardCallback);
+    glfwSetFramebufferSizeCallback(wnd_handle.get(), FrameBufferSizeCallback);
+    glfwSetKeyCallback(wnd_handle.get(), KeyboardCallback);
 
-    glPointSize(kPointSize); $
-    glLineWidth(kLineWidth); $
+    glPointSize(kPointSize); GlDbg();
+    glLineWidth(kLineWidth); GlDbg();
 
-    return window;
+    return wnd_handle;
 }
 
-void graph_TellAboutControls() {
-    std::cout << "Quit:      Q" << std::endl
-              << "Rotate +X: Z" << std::endl
-              << "Rotate +Y: X" << std::endl
-              << "Rotate +Z: C" << std::endl
-              << "Rotate -X: A" << std::endl
-              << "Rotate -Y: S" << std::endl
-              << "Rotate -Z: D" << std::endl
-              << "Zoom in:   +" << std::endl
-              << "Zoom out:  -" << std::endl
-              << "Radius+:   1" << std::endl
-              << "Radius-:   2" << std::endl;
+std::string TellAboutControls() {
+    std::string controls = 
+        "Quit:      Q\n"
+        "Rotate +X: Z\n"
+        "Rotate +Y: X\n"
+        "Rotate +Z: C\n"
+        "Rotate -X: A\n"
+        "Rotate -Y: S\n"
+        "Rotate -Z: D\n"
+        "Zoom in:   +\n"
+        "Zoom out:  -\n"
+        "Radius+:   1\n"
+        "Radius-:   2\n";
+    return controls;
 }
 
-GraphShaders graph_CompileShaders() {
-    // load shaders
-    std::vector<std::string> file_names_arr;
-    file_names_arr.push_back(std::string("./source/graphics/shaders/main_frag_sh.frag"));
-    file_names_arr.push_back(std::string("./source/graphics/shaders/main_vert_sh.vert"));
+ShaderProgram GetMainShaderProgram() {
+    return ProgramFromPath(
+        "./source/graphics/shaders/main_vert_sh.vert",
+        "./source/graphics/shaders/main_frag_sh.frag"
+    );
+}
 
-    file_names_arr.push_back(std::string("./source/graphics/shaders/box_frag_sh.frag"));
-    file_names_arr.push_back(std::string("./source/graphics/shaders/box_vert_sh.vert"));
+ShaderProgram GetBoxShaderProgram() {
+    return ProgramFromPath(
+        "./source/graphics/shaders/box_vert_sh.vert",
+        "./source/graphics/shaders/box_frag_sh.frag"
+    );
+}
 
-    std::vector<std::string> shader_arr = graph_LoadShaders(file_names_arr);
-
-    size_t main_frag_ind = 0;
-    size_t main_vert_ind = 1;
-    size_t box_frag_ind  = 2;
-    size_t box_vert_ind  = 3;
-
-    const char* main_frag_shader = shader_arr[main_frag_ind].c_str();
-    const char* main_vert_shader = shader_arr[main_vert_ind].c_str();
-    const char* box_frag_shader  = shader_arr[box_frag_ind].c_str();
-    const char* box_vert_shader  = shader_arr[box_vert_ind].c_str();
-
-    GLId main_shader_program_id = graph_CompileProgram(main_vert_shader, main_frag_shader);
-    GLId box_shader_program_id = graph_CompileProgram(box_vert_shader, box_frag_shader);
-
-    return (GraphShaders){.main_shader_program_id = main_shader_program_id,
-                          .box_shader_program_id  = box_shader_program_id};
+size_t BoxVertSize() {
+    return kNOfVertInBox + kNLinesInCircle * 2;
 }
 
 // render
-void Render(gas_Atoms* atoms, const GraphShaders& shader_ids) {
+void RenderEngine::Render(gas_Atoms* atoms) {
     assert(atoms != nullptr);
+    assert(main_program_.IsLinked());
+    assert(box_program_.IsLinked());
 
-    glm::mat4 rotate_mat = graph_GetRotationMatrix();
-
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); $
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); $
+    glm::mat4 rotate_mat = GetRotationMatrix();
 
     // render atoms ------------------------------------------------------------
-    GLId VAO_atoms;
-    GLId VBO_atoms;
+    
+    main_vao_.Bind();
+    main_vbo_.Bind();
 
-    glGenVertexArrays(1, &VAO_atoms); $ // allocate 1 vertex array with id VAO
-    glGenBuffers(1, &VBO_atoms); $ // gl allocates 1 buffer with id VBO
+    main_vbo_.Copy(
+        atoms->n_coords * sizeof(glm::vec3), 
+        atoms->coords
+    );
 
-    glBindVertexArray(VAO_atoms); $
+    main_vao_.AddAndEnableAttribute(
+        main_program_, 
+        "aPos", 
+        kNDimensions, 
+        GL_FLOAT, 
+        GL_FALSE, 
+        sizeof(glm::vec3), 
+        nullptr // zero offset
+    );
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_atoms); $ // vbo now is associated with array buffer
-    glBufferData(GL_ARRAY_BUFFER,
-                 (GLsizeiptr)(atoms->n_coords * sizeof(glm::vec3)),
-                 atoms->coords,
-                 GL_DYNAMIC_DRAW); $ // gl copy to buffer
+    main_program_.Use();
 
-    // why 0?
-    glVertexAttribPointer(0, kNDimensions, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0); $
+    main_program_.Uniform("rotate_mat") = rotate_mat;
+    main_program_.Uniform("scale_scene") = scale_scene;
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0); $
-    glBindVertexArray(0); $
+    glDrawArrays(GL_POINTS, 0, (GLsizei)atoms->n_coords); GlDbg(); 
+    // NOTE maybe disable
+    // glDisableVertexAttribArray(0); GlDbg();
+    main_vbo_.Unbind();
+    main_vao_.Unbind();
 
-    glUseProgram(shader_ids.main_shader_program_id); $
-
-    int main_rotate_id = glGetUniformLocation(shader_ids.main_shader_program_id, "rotate_mat"); $
-    glUniformMatrix4fv(main_rotate_id, 1, GL_FALSE, glm::value_ptr(rotate_mat)); $
-
-    int main_scale_id = glad_glGetUniformLocation(shader_ids.main_shader_program_id, "scale_scene");
-    glUniform1f(main_scale_id, scale_scene);
-
-    glBindVertexArray(VAO_atoms); $
-
-    glEnableVertexAttribArray(0); $
-    glDrawArrays(GL_POINTS, 0, (GLsizei)atoms->n_coords); $
-    glDisableVertexAttribArray(0); $
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0); $
-    glBindVertexArray(0); $
-
-    // Delete vertex array and buffer for atoms
-    glDeleteBuffers(1, &VBO_atoms); $
-    glDeleteVertexArrays(1, &VAO_atoms); $
     // render atoms ------------------------------------------------------------
 
     // render box --------------------------------------------------------------
     std::vector<glm::vec3> box_vec;
+    box_vec.reserve(kNOfVertInBox + kNLinesInCircle * 2);
     for (size_t i = 0; i < kNOfVertInBox; i++) {
         box_vec.push_back(kBox[i]);
     }
-    graph_CreateCircle(&box_vec);
+    CreateCircle(&box_vec);
 
-    GLId VAO_box;
-    GLId VBO_box;
+    box_vao_.Bind();
+    box_vbo_.Bind();
 
-    glGenVertexArrays(1, &VAO_box); $ // allocate 1 vertex array with id VAO
-    glGenBuffers(1, &VBO_box); $ // gl allocates 1 buffer with id VBO
+    box_vbo_.Copy(
+        box_vec.size() * sizeof(glm::vec3), 
+        box_vec.data()
+    );
 
-    glBindVertexArray(VAO_box); $
+    box_vao_.AddAndEnableAttribute(
+        box_program_, 
+        "aPos", 
+        kNDimensions, 
+        GL_FLOAT, 
+        GL_FALSE, 
+        sizeof(glm::vec3), 
+        nullptr // zero offset
+    );
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_box); $ // vbo now is associated with array buffer
+    box_program_.Use();
 
-    glBufferData(GL_ARRAY_BUFFER,
-                //  sizeof(kBox),
-                 static_cast<GLsizeiptr>(box_vec.size() * sizeof(glm::vec3)),
-                 box_vec.data(),
-                 GL_DYNAMIC_DRAW); $ // gl copy to buffer
+    box_program_.Uniform("rotate_mat") = rotate_mat;
+    box_program_.Uniform("scale_scene") = scale_scene;
 
-    // why 0?
-    glVertexAttribPointer(0, kNDimensions, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0); $
+    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(box_vec.size())); GlDbg();
+    // NOTE maybe?
+    // glDisableVertexAttribArray(0); GlDbg();
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0); $
-    glBindVertexArray(0); $
+    box_vbo_.Unbind();
+    box_vao_.Unbind();
 
-    glUseProgram(shader_ids.box_shader_program_id); $
-
-    int box_rotate_id = glGetUniformLocation(shader_ids.box_shader_program_id, "rotate_mat"); $
-    glUniformMatrix4fv(box_rotate_id, 1, GL_FALSE, glm::value_ptr(rotate_mat)); $
-
-    int box_scale_id = glad_glGetUniformLocation(shader_ids.box_shader_program_id, "scale_scene");
-    glUniform1f(box_scale_id, scale_scene);
-
-    glBindVertexArray(VAO_box); $
-
-    glEnableVertexAttribArray(0); $
-    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(box_vec.size())); $
-    glDisableVertexAttribArray(0); $
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0); $
-    glBindVertexArray(0); $
-
-    // Delete vertex array and buffer for box
-    glDeleteBuffers(1, &VBO_box); $
-    glDeleteVertexArrays(1, &VAO_box); $
     // render box --------------------------------------------------------------
 }
 
 // static ----------------------------------------------------------------------
 
-static GLId graph_CompileProgram(const char* vert_shader, const char* frag_shader) {
-    assert(vert_shader != nullptr);
-    assert(frag_shader != nullptr);
+namespace {
 
-    GLId vertex_shader_id = glCreateShader(GL_VERTEX_SHADER); $
-    glShaderSource(vertex_shader_id, 1, &vert_shader, NULL); $
-    glCompileShader(vertex_shader_id); $
-    GLLogShaderError(vertex_shader_id); $
-
-    GLId fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER); $
-    // 1 is the number of strings of source code,
-    // NULL means that strings are null terminated
-    glShaderSource(fragment_shader_id, 1, &frag_shader, NULL); $
-    glCompileShader(fragment_shader_id); $
-    GLLogShaderError(fragment_shader_id); $
-
-    GLId shader_prog_id = glCreateProgram(); $
-    glAttachShader(shader_prog_id, vertex_shader_id); $
-    glAttachShader(shader_prog_id, fragment_shader_id); $
-    glLinkProgram(shader_prog_id); $
-    GLLogLinkError(shader_prog_id); $
-
-    glDeleteShader(vertex_shader_id); $
-    glDeleteShader(fragment_shader_id); $
-
-    return shader_prog_id;
-}
-
-static glm::mat4 graph_GetRotationMatrix() {
+glm::mat4 GetRotationMatrix() {
     glm::mat4 rotate_mat_x = glm::mat4(1.0f);
     glm::mat4 rotate_mat_y = glm::mat4(1.0f);
     glm::mat4 rotate_mat_z = glm::mat4(1.0f);
@@ -259,7 +238,7 @@ static glm::mat4 graph_GetRotationMatrix() {
     return rotate_mat;
 }
 
-static void graph_CreateCircle(std::vector<glm::vec3>* box) {
+void CreateCircle(std::vector<glm::vec3>* box) {
     assert(box != nullptr);
 
     float angle_step = 2.0f * std::numbers::pi_v<float> / kNLinesInCircle;
@@ -276,13 +255,13 @@ static void graph_CreateCircle(std::vector<glm::vec3>* box) {
 
 // callbacks -------------------------------------------------------------------
 
-static void graph_FrameBufferSizeCallback(GLFWwindow* window, int width, int height) {
+void FrameBufferSizeCallback(GLFWwindow* window, int width, int height) {
     assert(window != nullptr);
 
     glViewport(0, 0, width, height);
 }
 
-static void graph_KeyboardCallback(GLFWwindow* window, int key, [[maybe_unused]] int scancode, [[maybe_unused]] int action, [[maybe_unused]] int mods) {
+void KeyboardCallback(GLFWwindow* window, int key, [[maybe_unused]] int scancode, [[maybe_unused]] int action, [[maybe_unused]] int mods) {
     switch (key) {
         case GLFW_KEY_Q:
             glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -327,6 +306,11 @@ static void graph_KeyboardCallback(GLFWwindow* window, int key, [[maybe_unused]]
 #if defined (GRAPH_DEBUG)
     std::cerr << "# angle vector: " << glm::to_string(angle_vec) << std::endl;
     std::cerr << "# scale float: " << scale_scene << std::endl;
-    std::cerr << "# radius: " << radius << std::endl;
+    std::cerr << "# radius: " << radius_global << std::endl;
 #endif // GRAPH_DEBUG
 }
+
+} // namespace
+
+} // namespace grx
+} // namespace gas

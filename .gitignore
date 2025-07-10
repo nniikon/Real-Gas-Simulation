@@ -1,12 +1,14 @@
-.cache/clangd/index
+.cache
 build
 compile_commands.json
 VOVA_LOH.html
 engine_dump.html
 notes
 .clang-format
+log
+mes.txt
+
 perf.data
 perf.data.old
 callgrind.out.*
-log
-mes.txt
+vgcore.*
