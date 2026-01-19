@@ -8,6 +8,7 @@
 #include <string>
 #include <cassert>
 #include <utility>
+#include <memory>
 
 #include <glad/gl.h>
 

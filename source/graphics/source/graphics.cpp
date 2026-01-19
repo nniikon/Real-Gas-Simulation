@@ -18,6 +18,7 @@
 
 #include "common/gas_structs.hpp"
 
+#include "glm/common.hpp"
 #include "graphics/config.hpp"
 #include "graphics/gl_log.hpp"
 #include "graphics/shaders.hpp"
@@ -243,9 +244,15 @@ void CreateCircle(std::vector<glm::vec3>* box) {
 
     float angle_step = 2.0f * std::numbers::pi_v<float> / kNLinesInCircle;
 
-    box->push_back(glm::vec3(-kScale, 0.0f, 1.0f * radius_global));
+    box->push_back(glm::vec3(-kScale, 0.0f, radius_global));
     for (size_t i = 1; i < kNLinesInCircle; i++) {
-        glm::vec3 new_point(-kScale, sin(angle_step * (float)i) * radius_global, cos(angle_step * (float)i) * radius_global);
+        float y = std::sin(angle_step * i) * radius_global;         
+        float z = std::cos(angle_step * i) * radius_global;
+        glm::vec3 new_point{
+            -kScale, 
+            std::abs(y) < kScale ? y : kScale * glm::sign(y), 
+            std::abs(z) < kScale ? z : kScale * glm::sign(z)
+        };
 
         box->push_back(new_point);
         box->push_back(new_point);

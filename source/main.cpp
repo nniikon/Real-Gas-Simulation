@@ -11,7 +11,7 @@
 #include "graphics/graphics.hpp"
 #include "graphics/gl_log.hpp"
 
-static constexpr size_t kNOfAtoms = 30'000;
+static constexpr size_t kNOfAtoms = 3'000'000;
 float radius_global = 0.1f;
 
 int main(const int argc, const char** argv) {
