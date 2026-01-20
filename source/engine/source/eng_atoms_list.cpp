@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <immintrin.h>
+#include <cmath>
+#include <limits>
 
 #include "logs/logs.hpp"
 
@@ -13,8 +15,13 @@ static FILE* gLogFile = nullptr;
 static float     GetRandomCoordinate();
 static float     GetRandomVelocity();
 static glm::vec3 GetRandomVector(float (*func)());
-static bool eng_HandleAtomCollision    (eng_AtomList* atoms, size_t i, size_t j);
-static void eng_HandleVanDerWaalseForce(eng_AtomList* atoms, size_t i, size_t j);
+static inline bool eng_HandleAtomCollision(eng_AtomList* atoms, size_t i, size_t j,
+                                           const glm::vec3& delta_pos, float distance2,
+                                           float collision_dist2);
+static inline void eng_HandleVanDerWaalseForce(eng_AtomList* atoms, size_t i, size_t j,
+                                               const glm::vec3& delta_pos, float distance2,
+                                               float delta_time, double epsilon_sigma6,
+                                               double epsilon_sigma12, float force_shift);
 static bool eng_HandleWallCollision    (eng_AtomList* atoms, size_t pos);
 static void eng_AdjustLists            (eng_AtomList* atoms);
 static void eng_DumpDivisions          (eng_AtomList* atoms);
@@ -39,6 +46,39 @@ static float GetRandomVelocity() {
 
 static glm::vec3 GetRandomVector(float (*func)()) {
     return glm::vec3(func(), func(), func());
+}
+
+static inline int64_t eng_ListHeadIndex(size_t list_index) {
+    return -((int64_t)list_index + 1);
+}
+
+static inline size_t eng_GetCellIndex(const eng_AtomList* atoms, const glm::vec3& pos) {
+    const float box_size = atoms->box_size;
+    const float box_length = box_size * 2.0f;
+    const float inv_div_length = (float)atoms->axis_divisions / box_length;
+
+    int x = (int)((pos.x + box_size) * inv_div_length);
+    int y = (int)((pos.y + box_size) * inv_div_length);
+    int z = (int)((pos.z + box_size) * inv_div_length);
+
+    const int max_index = (int)atoms->axis_divisions - 1;
+    if (x < 0) {
+        x = 0;
+    } else if (x > max_index) {
+        x = max_index;
+    }
+    if (y < 0) {
+        y = 0;
+    } else if (y > max_index) {
+        y = max_index;
+    }
+    if (z < 0) {
+        z = 0;
+    } else if (z > max_index) {
+        z = max_index;
+    }
+
+    return (size_t)((x * (int)atoms->axis_divisions + y) * (int)atoms->axis_divisions + z);
 }
 
 
@@ -89,7 +129,6 @@ float eng_GetAvgSpeed(eng_AtomList* atoms) {
 }
 
 
-// FIXME copypaste
 float eng_GetAvgSpeed2(eng_AtomList* atoms) {
     float avg_speed = 0.0f;
     float len = 0.0f;
@@ -100,6 +139,9 @@ float eng_GetAvgSpeed2(eng_AtomList* atoms) {
             avg_speed += len * len;
             n_atoms++;
         }
+    }
+    if (n_atoms == 0) {
+        return 0.0f;
     }
     avg_speed /= (float)(n_atoms);
     return avg_speed;
@@ -133,7 +175,8 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
     list->axis_divisions = divisions;
     list->space_divisions = divisions * divisions * divisions;
     list->size      = size;
-    list->mode = ENG_MODE_IDEAL;
+    // list->mode = ENG_MODE_IDEAL;
+    list->mode = ENG_MODE_REAL;
 
     eng_Error err = ENG_ERR_NO;
 
@@ -200,7 +243,6 @@ eng_Error eng_AtomListConstructor(eng_AtomList* list, const size_t size,
 eng_Error eng_UpdatePositions(eng_AtomList* atoms, float delta_time) {
     assert(atoms);
 
-    // TODO: SEVEROV OPTIMISATION
     for (size_t i = 0; i < atoms->size; i++) {
         if (atoms->is_freezed[i])
             continue;
@@ -212,39 +254,36 @@ eng_Error eng_UpdatePositions(eng_AtomList* atoms, float delta_time) {
 }
 
 
-static bool eng_HandleAtomCollision(eng_AtomList* atoms, size_t i, size_t j) {
+static inline bool eng_HandleAtomCollision(eng_AtomList* atoms, size_t i, size_t j,
+                                           const glm::vec3& delta_pos, float distance2,
+                                           float collision_dist2) {
     assert(atoms);
-    LOG_FUNC_START(gLogFile);
 
-    glm::vec3* pos1 = &atoms->positions[i];
-    glm::vec3* pos2 = &atoms->positions[j];
-    glm::vec3* vel1 = &atoms->velocities[i];
-    glm::vec3* vel2 = &atoms->velocities[j];
-    float radius = atoms->radius;
-
-    glm::vec3 delta_pos = *pos2 - *pos1;
-    float distance2 = glm::dot(delta_pos, delta_pos);
-
-    if (distance2 >= 4.0f * radius * radius) {
+    if (distance2 <= 0.0f || distance2 >= collision_dist2) {
         return false;
     }
 
-    glm::vec3 relative_velocity = *vel2 - *vel1;
+    const float dist = sqrt(distance2);
+    const glm::vec3 normal = delta_pos / dist;
+    const float collision_dist = sqrt(collision_dist2);
+    const float overlap = collision_dist - dist;
+    if (overlap > 0.0f) {
+        const glm::vec3 correction = 0.5f * overlap * normal;
+        atoms->positions[i] -= correction;
+        atoms->positions[j] += correction;
+    }
 
-    glm::vec3 normal = glm::normalize(delta_pos);
-    float dot_product = glm::dot(relative_velocity, normal);
+    const glm::vec3 relative_velocity = atoms->velocities[j] - atoms->velocities[i];
+    const float dot_product = glm::dot(relative_velocity, normal);
 
-    // If they're moving opposite directions
-    if (dot_product > 0.0f) [[unlikely]] {
+    if (dot_product >= 0.0f) [[unlikely]] {
         return false;
     }
 
-    float impulse_magnitude = -2.0f * dot_product;
+    const glm::vec3 impulse = dot_product * normal;
+    atoms->velocities[i] += impulse;
+    atoms->velocities[j] -= impulse;
 
-    *vel1 += impulse_magnitude * normal;
-    *vel2 -= impulse_magnitude * normal;
-
-    LOG_FUNC_END(gLogFile);
     return true;
 }
 
@@ -310,94 +349,172 @@ static bool eng_HandleWallCollision(eng_AtomList* atoms, size_t pos) {
 
 
 
-static float PowNeg7(float num) {
-    float num2 = num * num;         // num^2
-    float num4 = num2 * num2;       // num^4
-    return 1 / (num4 * num2 * num); // num^7
-}
-
-static float PowNeg13(float num) {
-    float num2 = num * num;         // num^2
-    float num4 = num2 * num2;       // num^4
-    float num8 = num4 * num4;       // num^8
-    return 1 / (num8 * num4 * num); // num^13
-}
-
-static void eng_HandleVanDerWaalseForce(eng_AtomList* atoms, size_t i, size_t j) {
+static inline void eng_HandleVanDerWaalseForce(eng_AtomList* atoms, size_t i, size_t j,
+                                               const glm::vec3& delta_pos, float distance2,
+                                               float delta_time, double epsilon_sigma6,
+                                               double epsilon_sigma12, float force_shift) {
     assert(atoms);
-    LOG_FUNC_START(gLogFile);
 
-    glm::vec3 *pos1 = &atoms->positions[i];
-    glm::vec3 *pos2 = &atoms->positions[j];
-    glm::vec3 *vel1 = &atoms->velocities[i];
-    glm::vec3 *vel2 = &atoms->velocities[j];
-    float radius = atoms->radius;
+    const double inv_r2 = 1.0 / (double)distance2;
+    const double inv_r6 = inv_r2 * inv_r2 * inv_r2;
+    const double inv_r12 = inv_r6 * inv_r6;
+    const float force_mag =
+        (float)(24.0 * (2.0 * epsilon_sigma12 * inv_r12 - epsilon_sigma6 * inv_r6) * inv_r2)
+                            - force_shift;
+    const glm::vec3 force_vec = force_mag * delta_pos;
 
-    // Lennard-Jones constants
-    float epsilon = 1.0f;
-    float sigma = 2.0f * radius;
-
-    glm::vec3 delta_pos = *pos2 - *pos1;
-    float distance = glm::length(delta_pos);
-
-    // Lennard-Jones potential
-    float r = distance / sigma;
-    float force = 24.0f * epsilon * (2.0f * PowNeg13(r) - PowNeg7(r));
-
-    glm::vec3 force_vec= force * glm::normalize(delta_pos);
-
-    *vel1 += force_vec;
-    *vel2 -= force_vec;
-
-    LOG_FUNC_END(gLogFile);
+    atoms->velocities[i] += force_vec * delta_time;
+    atoms->velocities[j] -= force_vec * delta_time;
 }
 
 
 static eng_Error eng_ListPush(eng_AtomList* atoms, int64_t list_index, int64_t elem_index) {
     assert(atoms);
-    assert(list_index <= atoms->space_divisions);
+    assert(list_index >= 0);
+    assert((size_t)list_index < atoms->space_divisions);
     assert(elem_index < atoms->size);
 
-    LOGF(gLogFile, "eng_ListPush: %lu %lu\n", list_index, elem_index);
-
-    int64_t last = atoms->prev[-list_index];
-    atoms->next[elem_index] = -list_index;
+    const int64_t head = eng_ListHeadIndex((size_t)list_index);
+    const int64_t last = atoms->prev[head];
+    atoms->next[elem_index] = head;
     atoms->prev[elem_index] = last;
     atoms->next[last] = elem_index;
-    atoms->prev[-list_index] = elem_index;
+    atoms->prev[head] = elem_index;
 
     return ENG_ERR_NO;
 }
 
 
-static inline int64_t iabs(int64_t num) {
-    if (num >= 0) {
-        return num;
-    }
-    else {
-        return -num;
-    }
-}
-
-
-eng_Error eng_HandleInteractions(eng_AtomList* atoms) {
+eng_Error eng_HandleInteractions(eng_AtomList* atoms, float delta_time) {
     assert(atoms);
     LOG_FUNC_START(gLogFile);
 
-    size_t size = atoms->size;
+    const size_t size = atoms->size;
+    if (size == 0) {
+        LOG_FUNC_END(gLogFile);
+        return ENG_ERR_NO;
+    }
 
+    const float radius = atoms->radius;
+    const float collision_dist2 = 4.0f * radius * radius;
 
-    // TODO: fix O(n^2)
-    for (size_t i = 0; i < size - 1; i++) {
-        if (atoms->mode == ENG_MODE_REAL) {
-            for (size_t j = i + 1; j < size; j++) {
-                eng_HandleAtomCollision    (atoms, i, j);
-                eng_HandleVanDerWaalseForce(atoms, i, j);
+    const bool apply_interactions = atoms->mode == ENG_MODE_REAL;
+    const double sigma = 2.0 * (double)radius;
+    const double sigma2 = sigma * sigma;
+    const double sigma6 = sigma2 * sigma2 * sigma2;
+    const double sigma12 = sigma6 * sigma6;
+    const double epsilon = (double)atoms->radius; // Limit LJ stiffness for very small radii.
+    const double epsilon_sigma6 = epsilon * sigma6;
+    const double epsilon_sigma12 = epsilon * sigma12;
+    const float lj_cutoff = (float)(2.5 * sigma);
+    const float lj_cutoff2 = lj_cutoff * lj_cutoff;
+    const float min_r2 = 1e-12f;
+    const float lj_min_r2 = collision_dist2 > min_r2 ? collision_dist2 : min_r2;
+    float force_shift = 0.0f;
+
+    if (lj_cutoff2 > 0.0f) {
+        const double inv_rc2 = 1.0 / (double)lj_cutoff2;
+        const double inv_rc6 = inv_rc2 * inv_rc2 * inv_rc2;
+        const double inv_rc12 = inv_rc6 * inv_rc6;
+        force_shift =
+            (float)(24.0 * (2.0 * epsilon_sigma12 * inv_rc12 - epsilon_sigma6 * inv_rc6) * inv_rc2);
+    }
+
+    float max_cutoff2 = collision_dist2;
+    if (apply_interactions && lj_cutoff2 > max_cutoff2) {
+        max_cutoff2 = lj_cutoff2;
+    }
+
+    if (apply_interactions) {
+        eng_AdjustLists(atoms);
+
+        const size_t axis = atoms->axis_divisions;
+        if (axis > 0 && max_cutoff2 > 0.0f) {
+            // Traverse only neighboring cells to keep pair checks local.
+            for (size_t x = 0; x < axis; x++) {
+                for (size_t y = 0; y < axis; y++) {
+                    for (size_t z = 0; z < axis; z++) {
+                        const size_t cell_index = (x * axis + y) * axis + z;
+                        const int64_t cell_head = eng_ListHeadIndex(cell_index);
+
+                        for (int nx = (int)x - 1; nx <= (int)x + 1; nx++) {
+                            if (nx < 0 || nx >= (int)axis) {
+                                continue;
+                            }
+                            for (int ny = (int)y - 1; ny <= (int)y + 1; ny++) {
+                                if (ny < 0 || ny >= (int)axis) {
+                                    continue;
+                                }
+                                for (int nz = (int)z - 1; nz <= (int)z + 1; nz++) {
+                                    if (nz < 0 || nz >= (int)axis) {
+                                        continue;
+                                    }
+
+                                    const size_t neigh_index =
+                                        ((size_t)nx * axis + (size_t)ny) * axis + (size_t)nz;
+                                    if (neigh_index < cell_index) {
+                                        continue;
+                                    }
+
+                                    const int64_t neigh_head = eng_ListHeadIndex(neigh_index);
+
+                                    if (neigh_index == cell_index) {
+                                        for (int64_t i = atoms->next[cell_head]; i >= 0; i = atoms->next[i]) {
+                                            for (int64_t j = atoms->next[i]; j >= 0; j = atoms->next[j]) {
+                                                const glm::vec3 delta_pos =
+                                                    atoms->positions[(size_t)j] - atoms->positions[(size_t)i];
+                                                const float distance2 = glm::dot(delta_pos, delta_pos);
+                                                if (distance2 > max_cutoff2) {
+                                                    continue;
+                                                }
+
+                                            eng_HandleAtomCollision(atoms, (size_t)i, (size_t)j,
+                                                                    delta_pos, distance2, collision_dist2);
+                                                if (distance2 >= lj_min_r2 && distance2 <= lj_cutoff2) {
+                                                    eng_HandleVanDerWaalseForce(atoms, (size_t)i, (size_t)j,
+                                                                                delta_pos, distance2, delta_time,
+                                                                                epsilon_sigma6, epsilon_sigma12,
+                                                                                force_shift);
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        for (int64_t i = atoms->next[cell_head]; i >= 0; i = atoms->next[i]) {
+                                            for (int64_t j = atoms->next[neigh_head];
+                                                 j >= 0;
+                                                 j = atoms->next[j]) {
+                                                const glm::vec3 delta_pos =
+                                                    atoms->positions[(size_t)j] - atoms->positions[(size_t)i];
+                                                const float distance2 = glm::dot(delta_pos, delta_pos);
+                                                if (distance2 > max_cutoff2) {
+                                                    continue;
+                                                }
+
+                                            eng_HandleAtomCollision(atoms, (size_t)i, (size_t)j,
+                                                                    delta_pos, distance2, collision_dist2);
+                                                if (distance2 >= lj_min_r2 && distance2 <= lj_cutoff2) {
+                                                    eng_HandleVanDerWaalseForce(atoms, (size_t)i, (size_t)j,
+                                                                                delta_pos, distance2, delta_time,
+                                                                                epsilon_sigma6, epsilon_sigma12,
+                                                                                force_shift);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
+    }
+
+    for (size_t i = 0; i < size; i++) {
         eng_HandleWallCollision(atoms, i);
     }
 
+    LOG_FUNC_END(gLogFile);
     return ENG_ERR_NO;
 }
 
@@ -525,44 +642,24 @@ static void eng_AdjustLists(eng_AtomList* atoms) {
     assert(atoms);
 
     // Reset the lists
-    for (int64_t i = -1; i >= -atoms->space_divisions; i--) {
+    for (int64_t i = -1; i >= -(int64_t)atoms->space_divisions; i--) {
         atoms->next[i] = i;
         atoms->prev[i] = i;
     }
 
-    size_t  axis_divisions = atoms-> axis_divisions;             // 3
-    size_t space_divisions = atoms->space_divisions;             // 27
-    float  box_size        = atoms->box_size;                    // 0.9
-    float  box_length      = 2 * box_size;                       // 1.8
-    float  div_length      = box_length / (float)axis_divisions; // 0.6
+    const size_t axis_divisions = atoms->axis_divisions;
+    if (axis_divisions == 0) {
+        return;
+    }
 
-    assert(axis_divisions * axis_divisions * axis_divisions == space_divisions);
+    assert(axis_divisions * axis_divisions * axis_divisions == atoms->space_divisions);
 
     for (size_t n_atom = 0; n_atom < atoms->size; n_atom++) {
-        for (size_t x = 0; x < axis_divisions; x++) {
-            for (size_t y = 0; y < axis_divisions; y++) {
-                for (size_t z = 0; z < axis_divisions; z++) {
-                    float x_low = ((float) x      * div_length) - box_size;
-                    float x_top = ((float)(x + 1) * div_length) - box_size;
-                    float y_low = ((float) y      * div_length) - box_size;
-                    float y_top = ((float)(y + 1) * div_length) - box_size;
-                    float z_low = ((float) z      * div_length) - box_size;
-                    float z_top = ((float)(z + 1) * div_length) - box_size;
-
-                    float pos_x = atoms->positions[n_atom].x;
-                    float pos_y = atoms->positions[n_atom].y;
-                    float pos_z = atoms->positions[n_atom].z;
-
-                    if (x_low <= pos_x && pos_x <= x_top &&
-                        y_low <= pos_y && pos_y <= y_top &&
-                        z_low <= pos_z && pos_z <= z_top)
-                    {
-                        size_t list_index = axis_divisions * axis_divisions * x +
-                                            axis_divisions * y + z;
-                        eng_ListPush(atoms, (int64_t)list_index, (int64_t)n_atom);
-                    }
-                }
-            }
+        if (atoms->is_out_of_box[n_atom]) {
+            continue;
         }
+
+        const size_t list_index = eng_GetCellIndex(atoms, atoms->positions[n_atom]);
+        eng_ListPush(atoms, (int64_t)list_index, (int64_t)n_atom);
     }
 }

@@ -1,10 +1,23 @@
 #include "engine/engine.hpp"
 
 #include <assert.h>
+#include <cmath>
 
 #include "logs/logs.hpp"
 
 static FILE* gLogFile = nullptr;
+
+static uint16_t eng_SelectDivisions(size_t n_atoms) {
+    const size_t target_atoms_per_cell = 16;
+    const double cells = (double)n_atoms / (double)target_atoms_per_cell;
+    size_t axis = (size_t)std::cbrt(cells);
+    if (axis < 1) {
+        axis = 1;
+    } else if (axis > 64) {
+        axis = 64;
+    }
+    return (uint16_t)axis;
+}
 
 const char* eng_GetErrorMsg(const eng_Error err) {
     #define DEF_ERR(err, msg)                                                  \
@@ -32,7 +45,7 @@ eng_Error eng_Ctor(gas_Atoms* atoms, eng_AtomList* list, const size_t n_atoms) {
 
     // TODO: cringe
     // TODO: error check
-    eng_AtomListConstructor(list, n_atoms, 1);
+    eng_AtomListConstructor(list, n_atoms, eng_SelectDivisions(n_atoms));
     eng_SetRandomPositions (list);
 
     atoms->coords = list->positions;
@@ -56,15 +69,22 @@ eng_Error eng_Compute(eng_AtomList* list, const float deltaTime, float radius, F
 
     static int time = 0;
 
-    eng_HandleInteractions(list);
+    eng_HandleInteractions(list, deltaTime);
     eng_UpdatePositions   (list, deltaTime);
 
-    if (time == 100) {
+    if (time == 100000) {
         float avg_energy = eng_GetAvgSpeed2(list);
-        float avg_out_energy = list->total_hole_energy / (float)list->n_hole_hits;
+        float avg_out_energy = 0.0f;
+        if (list->n_hole_hits > 0) {
+            avg_out_energy = list->total_hole_energy / (float)list->n_hole_hits;
+        }
         printf("average gas energy: %g\n", avg_energy);
         printf("average out energy: %g\n", avg_out_energy);
-        printf("coefficient: %g\n\n", avg_out_energy / avg_energy);
+        if (avg_energy > 0.0f) {
+            printf("coefficient: %g\n\n", avg_out_energy / avg_energy);
+        } else {
+            printf("coefficient: 0\n\n");
+        }
         fprintf(file, "%g ",   avg_energy);
         fprintf(file, "%g\n", avg_out_energy);
 
